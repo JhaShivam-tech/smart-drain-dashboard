@@ -3,264 +3,261 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Smart Drainage Blockage Prediction & Alert System">
-    <title>SmartDrain • Live Monitor</title>
+    <title>Smart Drainage Monitoring System | Ministry of Housing and Urban Affairs</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&family=Space+Grotesk:wght@500;700&display=swap');
+        body { font-family: 'Inter', sans-serif; background-color: #f8fafc; color: #0f172a; }
+        .govt-header { border-top: 4px solid #f97316; /* Saffron Top Border */ }
+        .card-shadow { box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03); }
         
-        :root {
-            --neon-cyan: #00f7ff;
-        } 
-        
-        * {
-            transition-property: all;
-            transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
-            transition-duration: 300ms;
-        }
-        
-        body {
-            font-family: 'Inter', system-ui, sans-serif;
-            background-color: #020C1B;
-            color: white;
-            min-height: 100vh;
-        }
-        
-        .title-font { font-family: 'Space Grotesk', sans-serif; }
-        
-        .hero-glow {
-            text-shadow: 0 0 20px var(--neon-cyan), 0 0 40px var(--neon-cyan);
-        }
-        
-        .glass {
-            background: rgba(10, 37, 64, 0.75);
-            backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
-        }
-        
-        .neon-border {
-            border: 1px solid rgba(0, 247, 255, 0.3);
-            box-shadow: 0 0 15px -3px var(--neon-cyan), 0 0 6px -3px var(--neon-cyan);
-        }
+        /* Smooth Transitions */
+        * { transition: all 0.2s ease-in-out; }
 
-        .danger-border {
-            border: 2px solid #ef4444 !important;
-            box-shadow: 0 0 30px rgba(239, 68, 68, 0.6) !important;
-        }
-
-        @keyframes pulse-neon {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.5; }
-        }
-        .neon-pulse { animation: pulse-neon 2s infinite; }
-
-        @keyframes flash-danger {
-            0%, 100% { background-color: rgba(239, 68, 68, 0.1); }
-            50% { background-color: rgba(239, 68, 68, 0.3); box-shadow: inset 0 0 50px rgba(239, 68, 68, 0.5); }
-        }
-        .danger-blink { animation: flash-danger 1s infinite; }
-
-        .progress-bar { transition: width 0.5s ease-out; }
+        /* Scrollbar */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
         
-        /* LOGIN OVERLAY */
-        #login-screen {
-            position: fixed; inset: 0; background: #020C1B; z-index: 999999;
-            display: flex; justify-content: center; align-items: center;
+        /* Chatbot Animation */
+        @keyframes popUp {
+            from { opacity: 0; transform: translateY(20px) scale(0.9); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
         }
-        .hidden-app { display: none !important; }
+        .chat-window { animation: popUp 0.3s ease-out; }
 
-        /* MODE CONTROLS */
-        body.User .dev-only, body.User .muni-only { display: none !important; }
-        body.Developer .user-only, body.Developer .muni-only { display: none !important; }
-        body.Municipal .user-only, body.Municipal .dev-only { display: none !important; }
+        /* Role Display Logic */
+        body.role-public .admin-only { display: none !important; }
+        body.role-admin .public-only { display: none !important; }
+
+        .blinking-red { animation: blinker 1s linear infinite; color: #dc2626; font-weight: bold; }
+        @keyframes blinker { 50% { opacity: 0.3; } }
     </style>
 </head>
-<body class="Municipal">
+<body class="role-admin flex flex-col min-h-screen">
 
-    <div id="login-screen">
-        <div class="glass neon-border rounded-[2rem] p-10 text-center w-[400px]">
-            <div class="text-6xl mb-6 text-[#00f7ff] hero-glow">💧</div>
-            <h2 class="title-font text-3xl mb-8 tracking-wide">System Login</h2>
-            <div class="space-y-4">
-                <input id="login-user" type="text" placeholder="Username (admin)" class="w-full bg-[#0A2540] text-white px-5 py-4 rounded-xl border border-white/10 outline-none focus:border-[#00f7ff] transition-colors">
-                <input id="login-pass" type="password" placeholder="Password (1234)" class="w-full bg-[#0A2540] text-white px-5 py-4 rounded-xl border border-white/10 outline-none focus:border-[#00f7ff] transition-colors">
-                <button onclick="handleLogin()" class="w-full bg-[#00f7ff] hover:bg-white text-[#020C1B] font-bold py-4 rounded-xl shadow-[0_0_20px_rgba(0,247,255,0.4)] hover:shadow-[0_0_30px_rgba(255,255,255,0.6)] mt-4">AUTHENTICATE</button>
+    <div class="govt-header bg-slate-900 text-slate-200 text-xs py-2 px-6 flex justify-between items-center z-50">
+        <div class="flex items-center gap-4">
+            <span><i class="fa-solid fa-building-flag mr-1 text-orange-400"></i> Government of India | Smart Cities Mission</span>
+            <span class="hidden md:inline border-l border-slate-600 pl-4">Ministry of Housing and Urban Affairs</span>
+        </div>
+        <div class="flex items-center gap-4 font-semibold">
+            <span class="text-red-400"><i class="fa-solid fa-phone mr-1"></i> Disaster Helpline: 1916 / 1073</span>
+            <div class="border-l border-slate-600 pl-4 flex items-center gap-2">
+                <span>View Mode:</span>
+                <select id="roleSelector" onchange="changeRole(this.value)" class="bg-slate-800 text-white border border-slate-600 rounded px-2 py-1 outline-none cursor-pointer">
+                    <option value="admin">Municipal Authority (Admin)</option>
+                    <option value="public">Citizen Portal (Public)</option>
+                </select>
             </div>
-            <p class="text-xs text-gray-500 mt-6 uppercase tracking-widest">Authorized Personnel Only</p>
         </div>
     </div>
 
-    <audio id="alarm" loop src="https://actions.google.com/sounds/v1/alarms/alarm_clock.ogg"></audio>
+    <nav class="bg-white border-b border-slate-200 sticky top-0 z-40 card-shadow">
+        <div class="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
+            <div class="flex items-center gap-4">
+                <div class="w-12 h-12 bg-blue-600 rounded-full flex items-center justify-center text-white text-2xl shadow-md">
+                    <i class="fa-solid fa-water"></i>
+                </div>
+                <div>
+                    <h1 class="text-2xl font-bold text-slate-800 tracking-tight">SmartDrain Analytics</h1>
+                    <p class="text-sm text-slate-500 font-medium">IoT Based Blockage Prediction System</p>
+                </div>
+            </div>
+            <div class="flex items-center gap-4">
+                <div id="connection-status" class="flex items-center gap-2 px-4 py-2 bg-slate-100 rounded-full border border-slate-200 text-sm font-semibold text-slate-600">
+                    <span class="relative flex h-3 w-3">
+                      <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-yellow-400 opacity-75"></span>
+                      <span class="relative inline-flex rounded-full h-3 w-3 bg-yellow-500"></span>
+                    </span>
+                    Connecting to Cloud...
+                </div>
+                <button class="admin-only bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-md font-semibold text-sm shadow">
+                    <i class="fa-solid fa-download mr-1"></i> Export Report
+                </button>
+            </div>
+        </div>
+    </nav>
 
-    <div id="app-content" class="hidden-app flex flex-col min-h-screen">
+    <main class="flex-grow max-w-7xl mx-auto w-full px-6 py-8">
         
-        <nav class="glass border-b border-[#00f7ff]/20 sticky top-0 z-50">
-            <div class="max-w-screen-2xl mx-auto px-6 py-4 flex items-center justify-between">
-                <div class="flex items-center gap-x-3">
-                    <div class="w-10 h-10 bg-[#00f7ff] text-[#020C1B] rounded-xl flex items-center justify-center font-bold text-2xl shadow-[0_0_15px_#00f7ff]">💧</div>
+        <div id="system-alert" class="bg-emerald-50 border-l-4 border-emerald-500 p-4 rounded-r-md card-shadow mb-8 flex justify-between items-center">
+            <div class="flex items-center">
+                <i id="alert-icon" class="fa-solid fa-circle-check text-emerald-500 text-2xl mr-4"></i>
+                <div>
+                    <h3 id="alert-title" class="text-emerald-800 font-bold text-lg">System Status: Normal</h3>
+                    <p id="alert-desc" class="text-emerald-600 text-sm">All drainage nodes in Mumbai East region are operating smoothly. No immediate action required.</p>
+                </div>
+            </div>
+            <div class="text-right">
+                <p class="text-xs text-slate-500 font-bold uppercase">Current Blockage</p>
+                <p class="text-3xl font-bold text-slate-800"><span id="main-blockage">0</span>%</p>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-4 gap-6 mb-8">
+            <div class="bg-white p-6 rounded-xl border border-slate-200 card-shadow lg:col-span-1">
+                <h3 class="text-sm font-bold text-slate-400 uppercase tracking-wider mb-4 border-b pb-2">Active Node details</h3>
+                <ul class="space-y-3 text-sm">
+                    <li class="flex justify-between"><span class="text-slate-500">Location ID:</span> <span class="font-bold text-slate-800">LTCE-01</span></li>
+                    <li class="flex justify-between"><span class="text-slate-500">Zone:</span> <span class="font-bold text-slate-800">Kurla / Navi Mumbai</span></li>
+                    <li class="flex justify-between"><span class="text-slate-500">Hardware:</span> <span class="font-bold text-slate-800">ESP32 + Sensors</span></li>
+                    <li class="flex justify-between"><span class="text-slate-500">Last Ping:</span> <span class="font-bold text-emerald-600" id="last-ping">Just now</span></li>
+                </ul>
+                <div class="mt-6 pt-4 border-t border-slate-100 admin-only">
+                    <button class="w-full border border-blue-600 text-blue-600 hover:bg-blue-50 py-2 rounded font-semibold text-sm">
+                        <i class="fa-solid fa-gear mr-1"></i> Configure Node
+                    </button>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-4 lg:col-span-3">
+                <div class="bg-white p-5 rounded-xl border border-slate-200 card-shadow flex flex-col justify-between">
+                    <div class="flex justify-between items-start">
+                        <div class="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600"><i class="fa-solid fa-water"></i></div>
+                        <span class="text-xs font-bold px-2 py-1 bg-slate-100 text-slate-500 rounded">Liters/Sec</span>
+                    </div>
                     <div>
-                        <h1 class="title-font text-xl tracking-tight font-bold">SmartDrain</h1>
-                        <p class="text-[10px] text-gray-400 font-mono tracking-widest" id="fb-status">CONNECTING CLOUD...</p>
+                        <p class="text-sm font-bold text-slate-400 uppercase mt-4">Water Flow Rate</p>
+                        <p class="text-4xl font-bold text-slate-800 mt-1"><span id="val-flow">0.0</span></p>
                     </div>
                 </div>
-                
-                <div class="flex items-center gap-x-6">
-                    <div class="hidden md:flex items-center gap-2 bg-[#0A2540] px-4 py-1.5 rounded-lg border border-white/10">
-                        <span class="text-xs text-gray-400 font-mono">MODE:</span>
-                        <select id="modeSelect" onchange="changeMode(this.value)" class="bg-transparent text-[#00f7ff] outline-none font-mono text-sm cursor-pointer border-none">
-                            <option value="Municipal">Municipal Control</option>
-                            <option value="User">Public View</option>
-                            <option value="Developer">Raw Telemetry</option>
-                        </select>
+                <div class="bg-white p-5 rounded-xl border border-slate-200 card-shadow flex flex-col justify-between">
+                    <div class="flex justify-between items-start">
+                        <div class="w-10 h-10 rounded-full bg-cyan-100 flex items-center justify-center text-cyan-600"><i class="fa-solid fa-droplet"></i></div>
+                        <span class="text-xs font-bold px-2 py-1 bg-slate-100 text-slate-500 rounded">Percentage</span>
                     </div>
-                    <button onclick="logout()" class="text-sm font-medium text-red-400 hover:text-red-300 border border-red-400/30 hover:bg-red-400/10 px-4 py-2 rounded-lg transition-colors"><i class="fa-solid fa-right-from-bracket mr-2"></i>LOGOUT</button>
+                    <div>
+                        <p class="text-sm font-bold text-slate-400 uppercase mt-4">Soil Moisture</p>
+                        <p class="text-4xl font-bold text-slate-800 mt-1"><span id="val-moisture">0</span><span class="text-xl text-slate-400">%</span></p>
+                    </div>
                 </div>
-            </div>
-        </nav>
-
-        <main class="flex-grow flex items-center justify-center p-6 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] bg-fixed">
-            <div class="w-full max-w-4xl">
-                
-                <div id="main-card" class="glass neon-border rounded-[2rem] p-8 md:p-12 relative overflow-hidden transition-all duration-500">
-                    
-                    <div class="flex justify-between items-start mb-10 border-b border-white/10 pb-6">
-                        <div>
-                            <div class="flex items-center gap-3 mb-2">
-                                <span class="bg-[#0A2540] text-[#00f7ff] text-xs font-mono px-3 py-1 rounded-full border border-[#00f7ff]/30 flex items-center">
-                                    <div class="w-1.5 h-1.5 bg-[#00f7ff] rounded-full neon-pulse mr-2"></div> LIVE SYNC
-                                </span>
-                                <span class="text-gray-500 text-xs font-mono">NODE_ID: KMD-01</span>
-                            </div>
-                            <h2 class="text-4xl title-font font-bold">Kurla Main Drain</h2>
-                        </div>
-                        
-                        <div class="flex flex-col items-end">
-                            <span id="status-badge" class="px-6 py-2 rounded-full font-bold tracking-widest text-sm mb-3 border-2 border-gray-600 text-gray-400">ANALYZING</span>
-                            <div class="flex gap-2 bg-[#020C1B] p-2 rounded-xl border border-white/5">
-                                <div id="led-green" class="w-4 h-4 rounded-full bg-green-900 opacity-30"></div>
-                                <div id="led-yellow" class="w-4 h-4 rounded-full bg-yellow-900 opacity-30"></div>
-                                <div id="led-red" class="w-4 h-4 rounded-full bg-red-900 opacity-30"></div>
-                            </div>
-                        </div>
+                <div class="bg-white p-5 rounded-xl border border-slate-200 card-shadow flex flex-col justify-between">
+                    <div class="flex justify-between items-start">
+                        <div class="w-10 h-10 rounded-full bg-orange-100 flex items-center justify-center text-orange-600"><i class="fa-solid fa-cloud"></i></div>
+                        <span class="text-xs font-bold px-2 py-1 bg-slate-100 text-slate-500 rounded">PPM</span>
                     </div>
-
-                    <div class="text-center mb-12">
-                        <div class="flex justify-center items-baseline gap-2">
-                            <span id="ui-blockage" class="text-8xl md:text-[9rem] font-mono font-bold leading-none text-[#00f7ff] drop-shadow-[0_0_15px_rgba(0,247,255,0.5)]">0</span>
-                            <span class="text-4xl text-gray-500 font-bold">%</span>
-                        </div>
-                        <p class="text-gray-400 uppercase tracking-widest mt-4 font-semibold text-lg">Overall Blockage Risk</p>
+                    <div>
+                        <p class="text-sm font-bold text-slate-400 uppercase mt-4">Methane (CH4)</p>
+                        <p class="text-4xl font-bold text-slate-800 mt-1"><span id="val-gas">0</span></p>
                     </div>
-
-                    <div class="muni-only space-y-6">
-                        <div>
-                            <div class="flex justify-between text-sm mb-2 font-medium">
-                                <span class="flex items-center text-gray-300"><i class="fa-solid fa-water w-6 text-[#00f7ff]"></i> Water Flow Rate</span>
-                                <span class="font-mono text-[#00f7ff]"><span id="muni-flow" class="text-xl font-bold">0</span> L/s</span>
-                            </div>
-                            <div class="h-3 bg-[#0A2540] rounded-full overflow-hidden border border-white/5">
-                                <div id="bar-flow" class="progress-bar h-full bg-[#00f7ff] w-0 shadow-[0_0_10px_#00f7ff]"></div>
-                            </div>
-                        </div>
-                        <div>
-                            <div class="flex justify-between text-sm mb-2 font-medium">
-                                <span class="flex items-center text-gray-300"><i class="fa-solid fa-droplet w-6 text-blue-400"></i> Soil Moisture</span>
-                                <span class="font-mono text-blue-400"><span id="muni-moisture" class="text-xl font-bold">0</span> %</span>
-                            </div>
-                            <div class="h-3 bg-[#0A2540] rounded-full overflow-hidden border border-white/5">
-                                <div id="bar-moisture" class="progress-bar h-full bg-blue-400 w-0 shadow-[0_0_10px_#60a5fa]"></div>
-                            </div>
-                        </div>
-                        <div>
-                            <div class="flex justify-between text-sm mb-2 font-medium">
-                                <span class="flex items-center text-gray-300"><i class="fa-solid fa-cloud w-6 text-yellow-400"></i> Methane Gas</span>
-                                <span class="font-mono text-yellow-400"><span id="muni-gas" class="text-xl font-bold">0</span> %</span>
-                            </div>
-                            <div class="h-3 bg-[#0A2540] rounded-full overflow-hidden border border-white/5">
-                                <div id="bar-gas" class="progress-bar h-full bg-yellow-400 w-0 shadow-[0_0_10px_#facc15]"></div>
-                            </div>
-                        </div>
-                        <div>
-                            <div class="flex justify-between text-sm mb-2 font-medium">
-                                <span class="flex items-center text-gray-300"><i class="fa-solid fa-arrows-up-down w-6 text-purple-400"></i> Surface Distance</span>
-                                <span class="font-mono text-purple-400"><span id="muni-distance" class="text-xl font-bold">0</span> cm</span>
-                            </div>
-                        </div>
+                </div>
+                <div class="bg-white p-5 rounded-xl border border-slate-200 card-shadow flex flex-col justify-between">
+                    <div class="flex justify-between items-start">
+                        <div class="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center text-purple-600"><i class="fa-solid fa-ruler-vertical"></i></div>
+                        <span class="text-xs font-bold px-2 py-1 bg-slate-100 text-slate-500 rounded">Centimeters</span>
                     </div>
-
-                    <div class="user-only text-center bg-[#0A2540]/50 border border-white/5 rounded-2xl p-6">
-                        <i class="fa-solid fa-shield-halved text-4xl text-emerald-400 mb-4 opacity-50"></i>
-                        <p class="text-xl text-gray-200">System is actively monitoring.</p>
-                        <p class="text-gray-500 text-sm mt-2">Alerts will be triggered automatically if risk exceeds 90%.</p>
+                    <div>
+                        <p class="text-sm font-bold text-slate-400 uppercase mt-4">Surface Clearance</p>
+                        <p class="text-4xl font-bold text-slate-800 mt-1"><span id="val-distance">0.0</span></p>
                     </div>
-
-                    <div class="dev-only grid md:grid-cols-2 gap-6 mt-8">
-                        <div class="bg-[#020C1B] p-6 rounded-2xl border border-white/10 font-mono text-sm text-gray-300">
-                            <div class="text-[#00f7ff] text-xs mb-4 pb-2 border-b border-white/10">FIREBASE RTDB PAYLOAD</div>
-                            <div class="flex justify-between mb-2"><span>flow:</span> <span id="dev-flow" class="text-green-400">0.00</span></div>
-                            <div class="flex justify-between mb-2"><span>moisture:</span> <span id="dev-moisture" class="text-green-400">0</span></div>
-                            <div class="flex justify-between mb-2"><span>gas:</span> <span id="dev-gas" class="text-green-400">0</span></div>
-                            <div class="flex justify-between mb-2"><span>distance:</span> <span id="dev-distance" class="text-green-400">0.00</span></div>
-                            <div class="flex justify-between pt-2 mt-2 border-t border-white/10"><span>calc_blockage:</span> <span id="dev-blockage" class="text-red-400">0</span></div>
-                        </div>
-                        <div class="bg-[#020C1B] p-4 rounded-2xl border border-white/10 overflow-hidden flex flex-col">
-                            <div class="text-[#00f7ff] font-mono text-xs mb-2">SYSTEM LOGS</div>
-                            <div id="dev-logs" class="font-mono text-[10px] text-gray-500 overflow-y-auto flex-grow space-y-1">
-                                </div>
-                        </div>
-                    </div>
-
                 </div>
             </div>
-        </main>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 admin-only">
+            
+            <div class="bg-white p-6 rounded-xl border border-slate-200 card-shadow lg:col-span-2">
+                <div class="flex justify-between items-center mb-6">
+                    <h3 class="text-base font-bold text-slate-800">Live Blockage Trend (Real-time)</h3>
+                    <span class="text-xs px-2 py-1 bg-blue-100 text-blue-700 font-semibold rounded"><i class="fa-solid fa-circle-dot text-[10px] mr-1"></i> Live</span>
+                </div>
+                <div class="h-64 w-full">
+                    <canvas id="blockageChart"></canvas>
+                </div>
+            </div>
+
+            <div class="bg-white p-6 rounded-xl border border-slate-200 card-shadow lg:col-span-1 flex flex-col">
+                <h3 class="text-base font-bold text-slate-800 mb-4 border-b pb-2">System Audit Logs</h3>
+                <div id="activity-logs" class="flex-1 overflow-y-auto space-y-3 text-xs pr-2">
+                    <div class="bg-slate-50 p-2 rounded border border-slate-100 text-slate-500">System initialized. Waiting for telemetry data...</div>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <div class="fixed bottom-6 right-6 z-50 flex flex-col items-end">
         
-        <footer class="bg-black py-6 text-center text-xs text-gray-600 border-t border-white/5">
-            <p>SmartDrain AI Dashboard • MCGM Prototype</p>
-        </footer>
+        <div id="chat-window" class="hidden bg-white w-80 rounded-xl card-shadow border border-slate-200 mb-4 overflow-hidden flex-col chat-window">
+            <div class="bg-blue-600 text-white p-4 flex justify-between items-center">
+                <div class="flex items-center gap-2">
+                    <i class="fa-solid fa-robot text-xl"></i>
+                    <div>
+                        <h4 class="font-bold text-sm">Citizen Sahayak</h4>
+                        <p class="text-[10px] text-blue-200">Govt. AI Assistant</p>
+                    </div>
+                </div>
+                <button onclick="toggleChat()" class="text-white hover:text-blue-200"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            
+            <div id="chat-messages" class="p-4 h-64 overflow-y-auto bg-slate-50 text-sm space-y-4">
+                <div class="bg-white p-3 rounded-lg border border-slate-200 shadow-sm inline-block rounded-tl-none text-slate-700">
+                    Namaste! 🙏 I am the SmartDrain AI assistant. How can I help you today?
+                </div>
+                <div class="flex flex-wrap gap-2 mt-2">
+                    <button onclick="sendChatMsg('What is this project?')" class="text-xs bg-blue-50 border border-blue-200 text-blue-700 px-3 py-1.5 rounded-full hover:bg-blue-100 transition">What is this project?</button>
+                    <button onclick="sendChatMsg('Report a Blockage')" class="text-xs bg-red-50 border border-red-200 text-red-700 px-3 py-1.5 rounded-full hover:bg-red-100 transition">Report a Blockage</button>
+                    <button onclick="sendChatMsg('Check current risk')" class="text-xs bg-slate-200 border border-slate-300 text-slate-700 px-3 py-1.5 rounded-full hover:bg-slate-300 transition">Check current risk</button>
+                </div>
+            </div>
+            
+            <div class="p-3 border-t border-slate-200 bg-white flex gap-2">
+                <input type="text" id="chat-input" placeholder="Type your query..." class="flex-1 border border-slate-300 rounded px-3 py-2 text-sm outline-none focus:border-blue-500">
+                <button onclick="handleManualChat()" class="bg-blue-600 text-white px-3 py-2 rounded hover:bg-blue-700"><i class="fa-solid fa-paper-plane"></i></button>
+            </div>
+        </div>
+
+        <button onclick="toggleChat()" class="w-14 h-14 bg-blue-600 hover:bg-blue-700 text-white rounded-full card-shadow flex items-center justify-center text-2xl relative">
+            <i class="fa-solid fa-message"></i>
+            <span class="absolute top-0 right-0 w-3 h-3 bg-red-500 border-2 border-white rounded-full"></span>
+        </button>
     </div>
 
     <script type="module">
-        // 1. SIMPLE LOGIN SYSTEM
-        window.handleLogin = function() {
-            const u = document.getElementById("login-user").value;
-            const p = document.getElementById("login-pass").value;
-            if (u === "admin" && p === "1234") {
-                localStorage.setItem("loginAuth", "true");
-                document.getElementById("login-screen").classList.add("hidden-app");
-                document.getElementById("app-content").classList.remove("hidden-app");
-                // Unlock audio context
-                document.getElementById("alarm").load();
-            } else {
-                alert("Access Denied. Invalid credentials.");
+        // --- 1. VIEW ROLE TOGGLE (SIH Feature) ---
+        window.changeRole = function(role) {
+            document.body.className = `role-${role} flex flex-col min-h-screen`;
+        };
+
+        // --- 2. CHART.JS INITIALIZATION ---
+        const ctx = document.getElementById('blockageChart').getContext('2d');
+        const chartData = {
+            labels: [],
+            datasets: [{
+                label: 'Blockage Risk (%)',
+                data: [],
+                borderColor: '#2563eb', // Blue-600
+                backgroundColor: 'rgba(37, 99, 235, 0.1)',
+                borderWidth: 2,
+                fill: true,
+                tension: 0.4,
+                pointRadius: 2,
+                pointBackgroundColor: '#2563eb'
+            }]
+        };
+        const blockageChart = new Chart(ctx, {
+            type: 'line',
+            data: chartData,
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: { beginAtZero: true, max: 100 },
+                    x: { display: true }
+                },
+                plugins: { legend: { display: false } },
+                animation: { duration: 0 }
             }
-        };
+        });
 
-        window.logout = function() {
-            localStorage.setItem("loginAuth", "false");
-            location.reload();
-        };
-
-        // Check login state
-        if (localStorage.getItem("loginAuth") === "true") {
-            document.getElementById("login-screen").classList.add("hidden-app");
-            document.getElementById("app-content").classList.remove("hidden-app");
-        }
-
-        // 2. MODE SWITCHER
-        window.changeMode = function(mode) {
-            document.body.className = mode;
-            localStorage.setItem("uiMode", mode);
-        };
-        const savedMode = localStorage.getItem("uiMode") || "Municipal";
-        document.getElementById("modeSelect").value = savedMode;
-        document.body.className = savedMode;
-
-        // 3. FIREBASE INTEGRATION (V9 CDN)
+        // --- 3. FIREBASE INTEGRATION (Real-time) ---
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 
+        // Firebase Config
         const firebaseConfig = {
             apiKey: "AIzaSyCyvHXBBQ_mQ5hevFGWHozMrM_Nnm_hbGM",
             databaseURL: "https://smartdrainageblockagesystem-default-rtdb.asia-southeast1.firebasedatabase.app/"
@@ -270,107 +267,152 @@
         const db = getDatabase(app);
         const drainRef = ref(db, "drain1");
 
-        const fbStatus = document.getElementById("fb-status");
-        
-        // 4. REALTIME DATA LISTENER
+        // UI Elements
+        const connStatus = document.getElementById('connection-status');
+        let currentBlockage = 0; // Global variable for chatbot
+
+        // Fetch Data
         onValue(drainRef, (snapshot) => {
-            fbStatus.innerText = "● CLOUD CONNECTED";
-            fbStatus.className = "text-[10px] text-emerald-400 font-mono tracking-widest";
-            
             const data = snapshot.val();
             if (!data) return;
 
-            const flow = data.flow || 0;
-            const moisture = data.moisture || 0;
-            const gas = data.gas || 0;
-            const distance = data.distance || 0;
-            const blockage = data.blockage || 0;
+            // Connection Active UI
+            connStatus.innerHTML = `<span class="relative flex h-3 w-3"><span class="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span></span> System Online`;
+            connStatus.className = "flex items-center gap-2 px-4 py-2 bg-emerald-50 rounded-full border border-emerald-200 text-sm font-semibold text-emerald-700";
+            document.getElementById('last-ping').innerText = new Date().toLocaleTimeString();
 
-            // MAIN UI
-            document.getElementById("ui-blockage").innerText = blockage;
-            
-            // MUNICIPAL UI (Values & Bars)
-            document.getElementById("muni-flow").innerText = flow.toFixed(1);
-            document.getElementById("muni-moisture").innerText = moisture;
-            document.getElementById("muni-gas").innerText = gas;
-            document.getElementById("muni-distance").innerText = distance.toFixed(1);
-            
-            // Calc percentages for bars (assuming flow max 100)
-            document.getElementById("bar-flow").style.width = `${Math.min(flow, 100)}%`;
-            document.getElementById("bar-moisture").style.width = `${moisture}%`;
-            document.getElementById("bar-gas").style.width = `${gas}%`;
+            // Extract values
+            const flow = parseFloat(data.flow) || 0;
+            const moisture = parseInt(data.moisture) || 0;
+            const gas = parseInt(data.gas) || 0;
+            const distance = parseFloat(data.distance) || 0;
+            const blockage = parseInt(data.blockage) || 0;
+            currentBlockage = blockage; // update global
 
-            // DEV UI
-            document.getElementById("dev-flow").innerText = flow.toFixed(2);
-            document.getElementById("dev-moisture").innerText = moisture;
-            document.getElementById("dev-gas").innerText = gas;
-            document.getElementById("dev-distance").innerText = distance.toFixed(2);
-            document.getElementById("dev-blockage").innerText = blockage;
+            // Update Metric Cards
+            document.getElementById('val-flow').innerText = flow.toFixed(1);
+            document.getElementById('val-moisture').innerText = moisture;
+            document.getElementById('val-gas').innerText = gas;
+            document.getElementById('val-distance').innerText = distance.toFixed(1);
+            document.getElementById('main-blockage').innerText = blockage;
 
-            // Update Logs
-            const logBox = document.getElementById("dev-logs");
-            const time = new Date().toLocaleTimeString();
-            logBox.innerHTML = `<div><span class="text-blue-400">[${time}]</span> DATA_RCV {f:${flow}, m:${moisture}, b:${blockage}}</div>` + logBox.innerHTML;
+            // Update Chart
+            const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second:'2-digit' });
+            chartData.labels.push(timeStr);
+            chartData.datasets[0].data.push(blockage);
+            if (chartData.labels.length > 15) {
+                chartData.labels.shift();
+                chartData.datasets[0].data.shift();
+            }
+            blockageChart.update();
 
-            // Trigger Alerts
-            updateStatusUI(blockage);
+            // Handle Alert States
+            updateAlertBanner(blockage);
+
+            // Log Activity
+            logActivity(`Data Sync: Flow=${flow.toFixed(1)}L/s, Risk=${blockage}%`);
+
         }, (error) => {
-            fbStatus.innerText = "● OFFLINE";
-            fbStatus.className = "text-[10px] text-red-500 font-mono tracking-widest";
-            console.error(error);
+            connStatus.innerHTML = `<i class="fa-solid fa-triangle-exclamation"></i> Offline`;
+            connStatus.className = "flex items-center gap-2 px-4 py-2 bg-red-50 rounded-full border border-red-200 text-sm font-semibold text-red-700";
+            console.error("Firebase Error:", error);
         });
 
-        // 5. STATUS, LED & SIREN LOGIC
-        function updateStatusUI(blockage) {
-            let status = "SAFE";
-            if (blockage >= 90) status = "DANGER";
-            else if (blockage >= 70) status = "WARNING";
+        // --- 4. ALERT LOGIC ---
+        function updateAlertBanner(blockage) {
+            const banner = document.getElementById('system-alert');
+            const icon = document.getElementById('alert-icon');
+            const title = document.getElementById('alert-title');
+            const desc = document.getElementById('alert-desc');
 
-            const badge = document.getElementById("status-badge");
-            const mainCard = document.getElementById("main-card");
-            const alarm = document.getElementById("alarm");
-            const uiBlockage = document.getElementById("ui-blockage");
-            
-            // LEDs
-            const ledG = document.getElementById("led-green");
-            const ledY = document.getElementById("led-yellow");
-            const ledR = document.getElementById("led-red");
-            
-            // Reset LEDs
-            ledG.className = "w-4 h-4 rounded-full bg-green-900 opacity-30";
-            ledY.className = "w-4 h-4 rounded-full bg-yellow-900 opacity-30";
-            ledR.className = "w-4 h-4 rounded-full bg-red-900 opacity-30";
-
-            badge.innerText = status;
-
-            if (status === "SAFE") {
-                badge.className = "px-6 py-2 rounded-full font-bold tracking-widest text-sm mb-3 border-2 border-emerald-500 text-emerald-400 bg-emerald-500/10 shadow-[0_0_15px_rgba(16,185,129,0.3)]";
-                ledG.className = "w-4 h-4 rounded-full bg-emerald-400 shadow-[0_0_15px_#34d399]";
-                uiBlockage.className = "text-8xl md:text-[9rem] font-mono font-bold leading-none text-emerald-400 drop-shadow-[0_0_15px_rgba(52,211,153,0.5)]";
-                
-                mainCard.classList.remove("danger-blink", "danger-border");
-                mainCard.classList.add("neon-border");
-                alarm.pause();
-                
-            } else if (status === "WARNING") {
-                badge.className = "px-6 py-2 rounded-full font-bold tracking-widest text-sm mb-3 border-2 border-yellow-500 text-yellow-400 bg-yellow-500/10 shadow-[0_0_15px_rgba(234,179,8,0.3)]";
-                ledY.className = "w-4 h-4 rounded-full bg-yellow-400 shadow-[0_0_15px_#facc15]";
-                uiBlockage.className = "text-8xl md:text-[9rem] font-mono font-bold leading-none text-yellow-400 drop-shadow-[0_0_15px_rgba(250,204,21,0.5)]";
-                
-                mainCard.classList.remove("danger-blink", "danger-border");
-                mainCard.classList.add("neon-border");
-                alarm.pause();
-
-            } else if (status === "DANGER") {
-                badge.className = "px-6 py-2 rounded-full font-bold tracking-widest text-sm mb-3 border-2 border-red-500 text-red-500 bg-red-500/20 shadow-[0_0_20px_rgba(239,68,68,0.5)]";
-                ledR.className = "w-4 h-4 rounded-full bg-red-500 shadow-[0_0_20px_#ef4444]";
-                uiBlockage.className = "text-8xl md:text-[9rem] font-mono font-bold leading-none text-red-500 drop-shadow-[0_0_20px_rgba(239,68,68,0.8)]";
-                
-                mainCard.classList.remove("neon-border");
-                mainCard.classList.add("danger-blink", "danger-border");
-                
-                if (alarm.paused) alarm.play().catch(e => console.log("Audio play requires user interaction."));
+            if (blockage >= 90) {
+                banner.className = "bg-red-50 border-l-4 border-red-600 p-4 rounded-r-md card-shadow mb-8 flex justify-between items-center";
+                icon.className = "fa-solid fa-triangle-exclamation text-red-600 text-3xl mr-4 blinking-red";
+                title.className = "text-red-800 font-bold text-lg uppercase";
+                title.innerText = "CRITICAL EMERGENCY ALERT";
+                desc.className = "text-red-700 text-sm font-semibold";
+                desc.innerText = "Blockage exceeded 90%. Flooding imminent. Field response team dispatched to LTCE-01.";
+            } else if (blockage >= 70) {
+                banner.className = "bg-yellow-50 border-l-4 border-yellow-500 p-4 rounded-r-md card-shadow mb-8 flex justify-between items-center";
+                icon.className = "fa-solid fa-bell text-yellow-600 text-2xl mr-4";
+                title.className = "text-yellow-800 font-bold text-lg";
+                title.innerText = "Warning: Elevated Risk";
+                desc.className = "text-yellow-700 text-sm";
+                desc.innerText = "Blockage levels are high. Continuous monitoring advised.";
+            } else {
+                banner.className = "bg-emerald-50 border-l-4 border-emerald-500 p-4 rounded-r-md card-shadow mb-8 flex justify-between items-center";
+                icon.className = "fa-solid fa-circle-check text-emerald-500 text-2xl mr-4";
+                title.className = "text-emerald-800 font-bold text-lg";
+                title.innerText = "System Status: Normal";
+                desc.className = "text-emerald-600 text-sm";
+                desc.innerText = "All drainage nodes in Mumbai region are operating smoothly.";
             }
+        }
+
+        // --- 5. SYSTEM LOGS ---
+        function logActivity(msg) {
+            const logBox = document.getElementById('activity-logs');
+            const time = new Date().toLocaleTimeString();
+            const logHTML = `<div class="bg-slate-50 p-2 rounded border border-slate-100"><span class="text-blue-600 font-bold">[${time}]</span> <span class="text-slate-700">${msg}</span></div>`;
+            logBox.insertAdjacentHTML('afterbegin', logHTML);
+            if (logBox.children.length > 20) logBox.lastElementChild.remove();
+        }
+
+        // --- 6. CHATBOT LOGIC ---
+        window.toggleChat = function() {
+            const chatBox = document.getElementById('chat-window');
+            if(chatBox.classList.contains('hidden')) {
+                chatBox.classList.remove('hidden');
+                chatBox.classList.add('flex');
+            } else {
+                chatBox.classList.add('hidden');
+                chatBox.classList.remove('flex');
+            }
+        };
+
+        window.sendChatMsg = function(msg) {
+            appendChat("user", msg);
+            document.getElementById('chat-input').value = ""; // clear input
+            
+            // Bot Response Delay simulation
+            setTimeout(() => {
+                if(msg.includes('project')) {
+                    appendChat("bot", "This is an IoT & AI based system built by Lokmanya Tilak College students for the Smart India Hackathon. It predicts drainage blockages to prevent urban flooding.");
+                } else if(msg.includes('Report')) {
+                    appendChat("bot", "To report a manual blockage, please provide your Pincode or call the BMC Disaster Management Helpline at 1916.");
+                } else if(msg.includes('risk')) {
+                    appendChat("bot", `Currently, the live blockage risk at node LTCE-01 is ${currentBlockage}%. ${currentBlockage >= 90 ? 'Please avoid the area.' : 'Status is under control.'}`);
+                } else {
+                    appendChat("bot", "I have logged your query. An official will review it. For emergencies, call 1073.");
+                }
+            }, 600);
+        };
+
+        window.handleManualChat = function() {
+            const input = document.getElementById('chat-input').value.trim();
+            if(input !== "") sendChatMsg(input);
+        };
+
+        // Trigger send on Enter key
+        document.getElementById('chat-input').addEventListener("keypress", function(event) {
+            if (event.key === "Enter") {
+                event.preventDefault();
+                handleManualChat();
+            }
+        });
+
+        function appendChat(sender, text) {
+            const chatBox = document.getElementById('chat-messages');
+            // Remove quick replies if they exist
+            const quickReplies = chatBox.querySelector('.gap-2');
+            if(quickReplies) quickReplies.remove();
+
+            const isUser = sender === "user";
+            const msgClass = isUser ? "bg-blue-600 text-white self-end rounded-tr-none ml-auto" : "bg-white text-slate-700 border border-slate-200 rounded-tl-none";
+            
+            const msgHTML = `<div class="p-3 rounded-lg shadow-sm mb-3 max-w-[85%] ${msgClass}">${text}</div>`;
+            chatBox.insertAdjacentHTML('beforeend', msgHTML);
+            chatBox.scrollTop = chatBox.scrollHeight;
         }
     </script>
 </body>
