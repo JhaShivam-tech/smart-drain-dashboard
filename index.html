@@ -1,46 +1,89 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>Smart Drain Dashboard</title>
+<title>Smart Drain Monitoring System</title>
 
-<!-- Firebase v8 (IMPORTANT) -->
 <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
 
 <style>
 body{
+  margin:0;
+  font-family:sans-serif;
   background:#0b1220;
   color:white;
-  text-align:center;
-  font-family:sans-serif;
 }
 
-h1{
+.header{
+  background:#020617;
+  padding:20px;
+  text-align:center;
+  font-size:26px;
+  font-weight:bold;
   color:#60a5fa;
 }
 
-.card{
-  margin:15px;
-  padding:15px;
-  border-radius:15px;
-  background:#1e293b;
-  font-size:18px;
+.container{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(250px,1fr));
+  gap:20px;
+  padding:20px;
 }
 
-.red{color:#ef4444}
+.card{
+  background:#1e293b;
+  padding:20px;
+  border-radius:15px;
+  text-align:center;
+  box-shadow:0 0 10px rgba(0,255,255,0.2);
+}
+
+.value{
+  font-size:24px;
+  margin-top:10px;
+}
+
 .green{color:#10b981}
 .yellow{color:#f59e0b}
+.red{color:#ef4444}
+
+.status{
+  margin-top:10px;
+  font-weight:bold;
+}
 </style>
 </head>
 
 <body>
 
-<h1>⚡ Smart Drain Monitoring</h1>
+<div class="header">
+⚡ Smart Drain Monitoring (Municipal Dashboard)
+</div>
 
-<div class="card">🚿 Flow: <span id="flow">--</span></div>
-<div class="card">💧 Moisture: <span id="moisture">--</span></div>
-<div class="card">☠ Gas: <span id="gas">--</span></div>
-<div class="card">🚨 Blockage: <span id="blockage">--</span></div>
+<div class="container">
+
+<div class="card">
+<h3>🚿 Flow</h3>
+<div id="flow" class="value">--</div>
+</div>
+
+<div class="card">
+<h3>💧 Moisture</h3>
+<div id="moisture" class="value">--</div>
+</div>
+
+<div class="card">
+<h3>☠ Gas</h3>
+<div id="gas" class="value">--</div>
+</div>
+
+<div class="card">
+<h3>🚨 Blockage</h3>
+<div id="blockage" class="value">--</div>
+<div id="status" class="status">--</div>
+</div>
+
+</div>
 
 <script>
 const firebaseConfig = {
@@ -55,23 +98,26 @@ db.ref("drain1").on("value", (snapshot) => {
   const data = snapshot.val();
 
   if(data){
+
     document.getElementById("flow").innerText = data.flow + " L/min";
     document.getElementById("moisture").innerText = data.moisture + " %";
     document.getElementById("gas").innerText = data.gas;
     document.getElementById("blockage").innerText = data.blockage + " %";
 
-    // Color logic
-    let block = data.blockage;
-    let el = document.getElementById("blockage");
+    let b = data.blockage;
+    let status = document.getElementById("status");
 
-    if(block < 40){
-      el.className = "green";
+    if(b < 40){
+      status.innerText = "SAFE";
+      status.className = "status green";
     }
-    else if(block < 70){
-      el.className = "yellow";
+    else if(b < 70){
+      status.innerText = "WARNING";
+      status.className = "status yellow";
     }
     else{
-      el.className = "red";
+      status.innerText = "DANGER";
+      status.className = "status red";
     }
   }
 });
