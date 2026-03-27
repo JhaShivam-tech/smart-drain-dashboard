@@ -3,13 +3,31 @@
 <head>
 <title>Smart Drain Dashboard</title>
 
-<script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js"></script>
+<!-- Firebase v8 (IMPORTANT) -->
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
 
 <style>
-body{background:#0b1220;color:white;text-align:center;font-family:sans-serif}
-.card{margin:10px;padding:15px;border-radius:15px;background:#1e293b}
-.red{color:red}
+body{
+  background:#0b1220;
+  color:white;
+  text-align:center;
+  font-family:sans-serif;
+}
+
+h1{
+  color:#60a5fa;
+}
+
+.card{
+  margin:15px;
+  padding:15px;
+  border-radius:15px;
+  background:#1e293b;
+  font-size:18px;
+}
+
+.red{color:#ef4444}
 .green{color:#10b981}
 .yellow{color:#f59e0b}
 </style>
@@ -17,43 +35,44 @@ body{background:#0b1220;color:white;text-align:center;font-family:sans-serif}
 
 <body>
 
-<h1>🌐 Smart Drain Monitoring</h1>
+<h1>⚡ Smart Drain Monitoring</h1>
 
-<div class="card">Flow: <span id="flow"></span></div>
-<div class="card">Moisture: <span id="moisture"></span></div>
-<div class="card">Gas: <span id="gas"></span></div>
-<div class="card">Blockage: <span id="blockage"></span></div>
+<div class="card">🚿 Flow: <span id="flow">--</span></div>
+<div class="card">💧 Moisture: <span id="moisture">--</span></div>
+<div class="card">☠ Gas: <span id="gas">--</span></div>
+<div class="card">🚨 Blockage: <span id="blockage">--</span></div>
 
 <script>
 const firebaseConfig = {
-  apiKey: "YOUR_API_KEY",
-  databaseURL: "https://your-project.firebaseio.com/"
+  apiKey: "AIzaSyCyvHXBbQ...",
+  databaseURL: "https://smartdrainageblockagesystem-default-rtdb.asia-southeast1.firebasedatabase.app/"
 };
 
-const app = firebase.initializeApp(firebaseConfig);
+firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 
-db.ref("/drain1").on("value", (snapshot) => {
-  let data = snapshot.val();
+db.ref("drain1").on("value", (snapshot) => {
+  const data = snapshot.val();
 
-  document.getElementById("flow").innerText = data.flow;
-  document.getElementById("moisture").innerText = data.moisture;
-  document.getElementById("gas").innerText = data.gas;
+  if(data){
+    document.getElementById("flow").innerText = data.flow + " L/min";
+    document.getElementById("moisture").innerText = data.moisture + " %";
+    document.getElementById("gas").innerText = data.gas;
+    document.getElementById("blockage").innerText = data.blockage + " %";
 
-  let b = data.blockage;
-  let blockText = document.getElementById("blockage");
+    // Color logic
+    let block = data.blockage;
+    let el = document.getElementById("blockage");
 
-  blockText.innerText = b + "%";
-
-  if (b >= 80) {
-    blockText.className = "red";
-    alert("🚨 BLOCKAGE ALERT!");
-  } 
-  else if (b >= 40) {
-    blockText.className = "yellow";
-  } 
-  else {
-    blockText.className = "green";
+    if(block < 40){
+      el.className = "green";
+    }
+    else if(block < 70){
+      el.className = "yellow";
+    }
+    else{
+      el.className = "red";
+    }
   }
 });
 </script>
