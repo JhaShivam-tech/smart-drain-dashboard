@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NEURON•DRN • Mumbai Smart Drainage System</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Orbitron:wght@500;700&display=swap');
+        
+        :root { --neon-cyan: #00f7ff; }
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background: radial-gradient(circle at center, #0a0a2e 0%, #000000 100%);
+            color: white;
+            overflow-x: hidden;
+        }
+        
+        .title-font { font-family: 'Orbitron', sans-serif; }
+        
+        .glass { 
+            background: rgba(15, 23, 42, 0.85); 
+            backdrop-filter: blur(20px); 
+            border: 1px solid rgba(0, 247, 255, 0.3); 
+        }
+        
+        .neon-text { text-shadow: 0 0 20px var(--neon-cyan); }
+        
+        .scanline {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(transparent, rgba(0,247,255,0.1), transparent);
+            animation: scan 6s linear infinite;
+            pointer-events: none;
+            z-index: 5;
+        }
+        
+        @keyframes scan { 0% { transform: translateY(-100%); } 100% { transform: translateY(400%); } }
+        
+        .led { animation: led-pulse 2s infinite; }
+        
+        .big-number { font-size: 7rem; line-height: 1; font-weight: 700; }
+    </style>
+</head>
+<body>
+
+    <!-- LOGIN SCREEN -->
+    <div id="loginScreen" class="fixed inset-0 bg-black/95 flex items-center justify-center z-50">
+        <div class="glass rounded-3xl w-full max-w-md p-10 relative overflow-hidden">
+            <div class="scanline"></div>
+            <div class="text-center mb-8">
+                <div class="text-6xl mb-4">💧</div>
+                <h1 class="title-font text-4xl neon-text">NEURON•DRN</h1>
+                <p class="text-cyan-400 text-sm tracking-widest">MUMBAI SMART DRAINAGE GRID • 2100</p>
+            </div>
+
+            <input id="userId" type="text" placeholder="USER ID" 
+                   class="w-full bg-black/60 border border-cyan-400/50 rounded-2xl px-6 py-4 text-center text-lg mb-4 focus:outline-none focus:border-cyan-400">
+            
+            <input id="userPass" type="password" placeholder="PASSWORD" 
+                   class="w-full bg-black/60 border border-cyan-400/50 rounded-2xl px-6 py-4 text-center text-lg mb-8 focus:outline-none focus:border-cyan-400">
+
+            <button onclick="handleLogin()" 
+                    class="w-full py-5 bg-gradient-to-r from-cyan-400 to-purple-500 text-black font-bold rounded-3xl text-xl hover:scale-105 transition">
+                ACTIVATE NEURAL ACCESS
+            </button>
+
+            <div class="mt-8 text-xs text-center text-gray-400">
+                Public: public / public<br>
+                Municipal: municipal / mumbai123<br>
+                Developer: dev / dev123
+            </div>
+        </div>
+    </div>
+
+    <!-- MAIN DASHBOARD -->
+    <div id="mainDashboard" class="hidden min-h-screen">
+        <nav class="fixed top-0 left-0 right-0 glass border-b border-cyan-400/30 px-8 py-4 flex items-center justify-between z-50">
+            <div class="flex items-center gap-3">
+                <span class="text-3xl">💧</span>
+                <h1 class="title-font text-3xl neon-text">NEURON•DRN</h1>
+            </div>
+            <div id="roleDisplay" class="font-mono text-cyan-400"></div>
+            <button onclick="logout()" class="px-6 py-2 border border-red-400 text-red-400 rounded-3xl hover:bg-red-500/10">LOGOUT</button>
+        </nav>
+
+        <div class="pt-24 px-8 max-w-screen-2xl mx-auto">
+            <!-- HERO / STATUS -->
+            <div class="glass rounded-3xl p-10 text-center relative">
+                <div class="scanline"></div>
+                <h2 class="text-cyan-400 text-sm tracking-widest mb-2">LIVE • DRAIN-1 (KURLA MAIN)</h2>
+                <div id="blockageDisplay" class="big-number text-transparent bg-clip-text bg-gradient-to-b from-cyan-300 to-purple-400">00</div>
+                <p class="text-2xl -mt-4 text-cyan-400">BLOCKAGE LEVEL</p>
+                
+                <div id="criticalAlert" class="hidden mt-8 bg-red-600 text-white py-6 rounded-2xl text-2xl font-bold flex items-center justify-center gap-4">
+                    <i class="fa-solid fa-triangle-exclamation animate-pulse"></i>
+                    CRITICAL BLOCKAGE – IMMEDIATE ACTION REQUIRED
+                </div>
+            </div>
+
+            <!-- SENSOR GRID -->
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-6 mt-8">
+                <div class="glass rounded-3xl p-8 text-center">
+                    <i class="fa-solid fa-water text-5xl text-cyan-400 mb-4"></i>
+                    <p class="text-xs text-cyan-400">WATER FLOW</p>
+                    <p id="flowValue" class="text-6xl font-mono font-bold">0.0</p>
+                    <p class="text-sm text-gray-400">L/s</p>
+                </div>
+                <div class="glass rounded-3xl p-8 text-center">
+                    <i class="fa-solid fa-droplet text-5xl text-emerald-400 mb-4"></i>
+                    <p class="text-xs text-cyan-400">MOISTURE</p>
+                    <p id="moistureValue" class="text-6xl font-mono font-bold">0</p>
+                    <p class="text-sm text-gray-400">%</p>
+                </div>
+                <div class="glass rounded-3xl p-8 text-center">
+                    <i class="fa-solid fa-gas-pump text-5xl text-amber-400 mb-4"></i>
+                    <p class="text-xs text-cyan-400">GAS LEVEL</p>
+                    <p id="gasValue" class="text-6xl font-mono font-bold">0</p>
+                    <p class="text-sm text-gray-400">ppm</p>
+                </div>
+                <div class="glass rounded-3xl p-8 text-center">
+                    <i class="fa-solid fa-ruler-vertical text-5xl text-purple-400 mb-4"></i>
+                    <p class="text-xs text-cyan-400">DISTANCE</p>
+                    <p id="distanceValue" class="text-6xl font-mono font-bold">0.0</p>
+                    <p class="text-sm text-gray-400">cm</p>
+                </div>
+            </div>
+
+            <!-- DEVELOPER DEBUG PANEL -->
+            <div id="devPanel" class="hidden glass rounded-3xl p-8 mt-8">
+                <h3 class="text-cyan-400 mb-4 font-bold">DEVELOPER DEBUG CONSOLE</h3>
+                <pre id="rawData" class="bg-black/70 p-6 rounded-2xl text-xs font-mono overflow-auto h-80 text-cyan-300"></pre>
+            </div>
+
+            <!-- PROJECT INFO -->
+            <div class="mt-12 glass rounded-3xl p-8">
+                <h3 class="title-font text-2xl mb-6">Smart Drainage Blockage Prediction System</h3>
+                <p class="text-slate-300">Real-time IoT monitoring with Firebase. AI predicts blockage 48 hours in advance. Designed for Mumbai to prevent monsoon flooding.</p>
+            </div>
+        </div>
+    </div>
+
+    <audio id="siren" loop src="https://assets.mixkit.co/sfx/preview/2578/2578.wav"></audio>
+
+    <script type="module">
+        // ================== FIREBASE CONFIG ==================
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyCyvHXBBQ_mQ5hevFGWHozMrM_Nnm_hbGM",
+            databaseURL: "https://smartdrainageblockagesystem-default-rtdb.asia-southeast1.firebasedatabase.app/"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+        const drainRef = ref(db, "drain1");
+
+        let currentRole = "";
+        let siren = document.getElementById("siren");
+
+        // ================== LOGIN ==================
+        window.handleLogin = function() {
+            const id = document.getElementById("userId").value.trim();
+            const pass = document.getElementById("userPass").value.trim();
+
+            if (id === "public" && pass === "public") currentRole = "public";
+            else if (id === "municipal" && pass === "mumbai123") currentRole = "municipal";
+            else if (id === "dev" && pass === "dev123") currentRole = "developer";
+            else return alert("Invalid credentials");
+
+            document.getElementById("loginScreen").classList.add("hidden");
+            document.getElementById("mainDashboard").classList.remove("hidden");
+            document.getElementById("roleDisplay").innerHTML = `<span class="text-cyan-400">${currentRole.toUpperCase()} MODE</span>`;
+
+            if (currentRole === "developer") document.getElementById("devPanel").classList.remove("hidden");
+            
+            startFirebaseListener();
+        };
+
+        window.logout = function() {
+            siren.pause();
+            document.getElementById("mainDashboard").classList.add("hidden");
+            document.getElementById("loginScreen").classList.remove("hidden");
+        };
+
+        // ================== REAL FIREBASE LISTENER ==================
+        function startFirebaseListener() {
+            onValue(drainRef, (snapshot) => {
+                const data = snapshot.val() || {};
+                
+                const blockage = parseFloat(data.blockage) || 0;
+                const flow = parseFloat(data.flow) || 0;
+                const moisture = parseInt(data.moisture) || 0;
+                const gas = parseInt(data.gas) || 0;
+                const distance = parseFloat(data.distance) || 0;
+
+                // Update main display
+                document.getElementById("blockageDisplay").textContent = blockage.toFixed(0);
+                document.getElementById("flowValue").textContent = flow.toFixed(1);
+                document.getElementById("moistureValue").textContent = moisture;
+                document.getElementById("gasValue").textContent = gas;
+                document.getElementById("distanceValue").textContent = distance.toFixed(1);
+
+                // Raw data for developer
+                if (currentRole === "developer") {
+                    document.getElementById("rawData").textContent = JSON.stringify(data, null, 2);
+                }
+
+                // Critical Alert + Siren
+                const alertBox = document.getElementById("criticalAlert");
+                if (blockage >= 90) {
+                    alertBox.classList.remove("hidden");
+                    if (currentRole !== "public") siren.play();
+                } else {
+                    alertBox.classList.add("hidden");
+                    siren.pause();
+                }
+            });
+        }
+    </script>
+</body>
+</html>
