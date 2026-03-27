@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SmartDrain • MCGM Official Dashboard | Smart India Hackathon</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Roboto:wght@500&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+        .title-font { font-family: 'Roboto', sans-serif; }
+        .glass { background: rgba(255,255,255,0.95); backdrop-filter: blur(12px); }
+        .gov-header { background: linear-gradient(to right, #002b5b, #003d80); }
+        .neon-cyan { color: #00d4ff; text-shadow: 0 0 10px #00d4ff; }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800">
+
+    <!-- LOGIN SCREEN -->
+    <div id="loginScreen" class="fixed inset-0 bg-slate-900 flex items-center justify-center z-50">
+        <div class="glass rounded-2xl shadow-2xl w-full max-w-md p-10">
+            <div class="text-center mb-8">
+                <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/0/0e/MCGM_Logo.svg/512px-MCGM_Logo.svg.png" class="h-16 mx-auto mb-4" alt="MCGM">
+                <h1 class="title-font text-3xl text-[#002b5b]">SmartDrain</h1>
+                <p class="text-sm text-slate-600">Municipal Corporation of Greater Mumbai</p>
+                <p class="text-xs text-emerald-600 mt-1">Smart India Hackathon 2026 • Selected Project</p>
+            </div>
+
+            <input id="userId" type="text" placeholder="User ID" class="w-full px-5 py-4 border border-slate-300 rounded-xl mb-4 focus:outline-none focus:border-blue-600">
+            <input id="userPass" type="password" placeholder="Password" class="w-full px-5 py-4 border border-slate-300 rounded-xl mb-6 focus:outline-none focus:border-blue-600">
+
+            <button onclick="handleLogin()" class="w-full bg-[#002b5b] hover:bg-blue-800 text-white py-4 rounded-xl font-semibold text-lg">
+                SECURE GOVERNMENT LOGIN
+            </button>
+
+            <div class="text-xs text-center mt-6 text-slate-500">
+                Public: <strong>public / public</strong><br>
+                Municipal: <strong>municipal / mumbai123</strong><br>
+                Developer: <strong>dev / dev123</strong>
+            </div>
+        </div>
+    </div>
+
+    <!-- MAIN DASHBOARD -->
+    <div id="mainDashboard" class="hidden">
+        <!-- Official Header -->
+        <header class="gov-header text-white py-4 sticky top-0 z-50">
+            <div class="max-w-screen-2xl mx-auto px-8 flex items-center justify-between">
+                <div class="flex items-center gap-4">
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/0/0e/MCGM_Logo.svg/512px-MCGM_Logo.svg.png" class="h-12" alt="MCGM">
+                    <div>
+                        <h1 class="title-font text-2xl">SmartDrain</h1>
+                        <p class="text-xs tracking-widest">Drainage Blockage Prediction & Alert System</p>
+                    </div>
+                </div>
+                <div class="text-right">
+                    <p class="text-sm">Smart India Hackathon 2026</p>
+                    <p id="roleDisplay" class="text-xs font-medium"></p>
+                </div>
+                <button onclick="logout()" class="px-6 py-2 bg-white text-[#002b5b] rounded-xl font-medium">LOGOUT</button>
+            </div>
+        </header>
+
+        <div class="max-w-screen-2xl mx-auto px-8 py-8">
+            <!-- Helpline Banner -->
+            <div class="bg-red-600 text-white p-4 rounded-2xl flex items-center justify-between mb-8">
+                <div class="flex items-center gap-3">
+                    <i class="fa-solid fa-phone-volume text-2xl"></i>
+                    <div>
+                        <strong>EMERGENCY HELPLINE:</strong> 022-12345678 (MCGM Drainage Control Room)
+                    </div>
+                </div>
+                <a href="tel:02212345678" class="bg-white text-red-600 px-8 py-3 rounded-xl font-semibold">CALL NOW</a>
+            </div>
+
+            <!-- LIVE STATUS -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div class="lg:col-span-2 bg-white border border-slate-200 rounded-3xl p-8">
+                    <h2 class="text-xl font-semibold mb-6 flex items-center justify-between">
+                        <span>LIVE DRAIN MONITORING • KURLA MAIN DRAIN</span>
+                        <span id="fbStatus" class="text-emerald-600 text-sm font-mono">● LIVE</span>
+                    </h2>
+                    <div class="flex justify-center">
+                        <div class="text-center">
+                            <div id="blockageBig" class="text-8xl font-bold text-slate-800">0</div>
+                            <div class="text-sm text-slate-500">CURRENT BLOCKAGE</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white border border-slate-200 rounded-3xl p-8 flex flex-col justify-between">
+                    <div>
+                        <p class="text-sm text-slate-500">CURRENT STATUS</p>
+                        <p id="statusText" class="text-4xl font-semibold text-emerald-600">SAFE</p>
+                    </div>
+                    <div id="criticalAlert" class="hidden bg-red-100 text-red-700 p-4 rounded-2xl text-center font-medium">
+                        🚨 CRITICAL BLOCKAGE DETECTED
+                    </div>
+                </div>
+            </div>
+
+            <!-- SENSOR READINGS + GRAPHS -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mt-8">
+                <div class="bg-white border border-slate-200 rounded-3xl p-6">
+                    <p class="text-sm text-slate-500 mb-2">WATER FLOW</p>
+                    <p id="flowValue" class="text-5xl font-semibold">0.0 <span class="text-base font-normal">L/s</span></p>
+                </div>
+                <div class="bg-white border border-slate-200 rounded-3xl p-6">
+                    <p class="text-sm text-slate-500 mb-2">MOISTURE LEVEL</p>
+                    <p id="moistureValue" class="text-5xl font-semibold">0%</p>
+                </div>
+                <div class="bg-white border border-slate-200 rounded-3xl p-6">
+                    <p class="text-sm text-slate-500 mb-2">GAS LEVEL</p>
+                    <p id="gasValue" class="text-5xl font-semibold">0 ppm</p>
+                </div>
+                <div class="bg-white border border-slate-200 rounded-3xl p-6">
+                    <p class="text-sm text-slate-500 mb-2">CLEARANCE</p>
+                    <p id="distanceValue" class="text-5xl font-semibold">0.0 cm</p>
+                </div>
+            </div>
+
+            <!-- TREND GRAPH -->
+            <div class="bg-white border border-slate-200 rounded-3xl p-8 mt-8">
+                <h3 class="font-semibold mb-6">48-HOUR BLOCKAGE TREND</h3>
+                <canvas id="trendChart" height="120"></canvas>
+            </div>
+
+            <!-- CHATBOT -->
+            <div onclick="toggleChat()" class="fixed bottom-8 right-8 bg-[#002b5b] text-white w-14 h-14 rounded-2xl flex items-center justify-center shadow-2xl cursor-pointer hover:scale-110 transition">
+                <i class="fa-solid fa-robot text-3xl"></i>
+            </div>
+
+            <!-- FLOATING CHAT WINDOW -->
+            <div id="chatWindow" class="hidden fixed bottom-28 right-8 w-80 bg-white border border-slate-200 rounded-3xl shadow-2xl overflow-hidden">
+                <div class="bg-[#002b5b] text-white p-4 flex items-center justify-between">
+                    <span>SmartDrain Assistant</span>
+                    <i onclick="toggleChat()" class="fa-solid fa-xmark cursor-pointer"></i>
+                </div>
+                <div class="h-80 p-4 overflow-y-auto text-sm" id="chatBody">
+                    Hello! How can I help you with drainage monitoring today?
+                </div>
+                <div class="p-4 border-t flex">
+                    <input id="chatInput" type="text" placeholder="Type message..." class="flex-1 border rounded-2xl px-4 py-3 text-sm">
+                    <button onclick="sendChatMessage()" class="ml-3 bg-[#002b5b] text-white px-6 rounded-2xl">Send</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        // ================== FIREBASE ==================
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyCyvHXBBQ_mQ5hevFGWHozMrM_Nnm_hbGM",
+            databaseURL: "https://smartdrainageblockagesystem-default-rtdb.asia-southeast1.firebasedatabase.app/"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+        const drainRef = ref(db, "drain1");
+
+        let currentRole = "";
+        let trendChart = null;
+        let siren = new Audio("https://assets.mixkit.co/sfx/preview/2578/2578.wav");
+
+        // ================== LOGIN ==================
+        window.handleLogin = function() {
+            const id = document.getElementById("userId").value.trim();
+            const pass = document.getElementById("userPass").value.trim();
+
+            if (id === "public" && pass === "public") currentRole = "public";
+            else if (id === "municipal" && pass === "mumbai123") currentRole = "municipal";
+            else if (id === "dev" && pass === "dev123") currentRole = "developer";
+            else return alert("Invalid login credentials");
+
+            document.getElementById("loginScreen").classList.add("hidden");
+            document.getElementById("mainDashboard").classList.remove("hidden");
+            document.getElementById("roleDisplay").innerHTML = `${currentRole.toUpperCase()} USER • MCGM`;
+
+            initDashboard();
+        };
+
+        window.logout = function() {
+            location.reload();
+        };
+
+        // ================== DASHBOARD INIT ==================
+        function initDashboard() {
+            // Real-time Firebase
+            onValue(drainRef, (snapshot) => {
+                const data = snapshot.val() || {};
+                const blockage = parseFloat(data.blockage) || 0;
+
+                document.getElementById("blockageBig").textContent = blockage.toFixed(0);
+                document.getElementById("flowValue").textContent = (parseFloat(data.flow) || 0).toFixed(1);
+                document.getElementById("moistureValue").textContent = parseInt(data.moisture) || 0;
+                document.getElementById("gasValue").textContent = parseInt(data.gas) || 0;
+                document.getElementById("distanceValue").textContent = (parseFloat(data.distance) || 0).toFixed(1);
+
+                // Critical alert
+                if (blockage >= 90) {
+                    document.getElementById("criticalAlert").classList.remove("hidden");
+                    siren.play();
+                } else {
+                    document.getElementById("criticalAlert").classList.add("hidden");
+                    siren.pause();
+                }
+
+                // Update chart
+                if (trendChart) {
+                    trendChart.data.labels.push(new Date().toLocaleTimeString());
+                    trendChart.data.datasets[0].data.push(blockage);
+                    if (trendChart.data.labels.length > 15) {
+                        trendChart.data.labels.shift();
+                        trendChart.data.datasets[0].data.shift();
+                    }
+                    trendChart.update();
+                }
+            });
+
+            // Initialize Trend Chart
+            const ctx = document.getElementById("trendChart");
+            trendChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: 'Blockage %',
+                        data: [],
+                        borderColor: '#002b5b',
+                        tension: 0.4,
+                        borderWidth: 3
+                    }]
+                },
+                options: { plugins: { legend: { display: false } }, scales: { y: { min: 0, max: 100 } } }
+            });
+        }
+
+        // ================== CHATBOT ==================
+        window.toggleChat = function() {
+            const win = document.getElementById("chatWindow");
+            win.classList.toggle("hidden");
+        };
+
+        window.sendChatMessage = function() {
+            const input = document.getElementById("chatInput");
+            if (!input.value) return;
+            
+            const body = document.getElementById("chatBody");
+            body.innerHTML += `<div class="text-right mt-3"><span class="bg-blue-100 text-blue-800 px-4 py-2 rounded-3xl">${input.value}</span></div>`;
+            
+            setTimeout(() => {
+                body.innerHTML += `<div class="mt-3"><span class="bg-slate-100 px-4 py-2 rounded-3xl">Thank you. Our team has been notified.</span></div>`;
+                body.scrollTop = body.scrollHeight;
+            }, 800);
+            
+            input.value = "";
+        };
+    </script>
+</body>
+</html>
