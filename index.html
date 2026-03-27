@@ -1,127 +1,422 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-<title>Smart Drain Monitoring System</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Drainage Dashboard | Mumbai</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --bg-base: #0a0e17;
+            --bg-glass: rgba(16, 24, 43, 0.6);
+            --border-glass: rgba(0, 243, 255, 0.2);
+            --text-main: #e2e8f0;
+            --text-muted: #94a3b8;
+            --neon-blue: #00f3ff;
+            --safe: #00ff88;
+            --warning: #ffaa00;
+            --danger: #ff3366;
+            --font-main: 'Inter', sans-serif;
+        }
 
-<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
-<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: var(--font-main);
+        }
 
-<style>
-body{
-  margin:0;
-  font-family:sans-serif;
-  background:#0b1220;
-  color:white;
-}
+        body {
+            background-color: var(--bg-base);
+            background-image: 
+                radial-gradient(circle at 15% 50%, rgba(0, 243, 255, 0.05), transparent 25%),
+                radial-gradient(circle at 85% 30%, rgba(0, 255, 136, 0.05), transparent 25%);
+            color: var(--text-main);
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
 
-.header{
-  background:#020617;
-  padding:20px;
-  text-align:center;
-  font-size:26px;
-  font-weight:bold;
-  color:#60a5fa;
-}
+        /* Glassmorphism Utility */
+        .glass-card {
+            background: var(--bg-glass);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid var(--border-glass);
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+            transition: transform 0.3s ease;
+        }
 
-.container{
-  display:grid;
-  grid-template-columns:repeat(auto-fit,minmax(250px,1fr));
-  gap:20px;
-  padding:20px;
-}
+        .glass-card:hover {
+            transform: translateY(-5px);
+            border-color: rgba(0, 243, 255, 0.4);
+        }
 
-.card{
-  background:#1e293b;
-  padding:20px;
-  border-radius:15px;
-  text-align:center;
-  box-shadow:0 0 10px rgba(0,255,255,0.2);
-}
+        /* Layout */
+        header {
+            padding: 20px 40px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border-glass);
+            background: rgba(10, 14, 23, 0.8);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
 
-.value{
-  font-size:24px;
-  margin-top:10px;
-}
+        .logo {
+            font-size: 1.5rem;
+            font-weight: 800;
+            color: var(--neon-blue);
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
 
-.green{color:#10b981}
-.yellow{color:#f59e0b}
-.red{color:#ef4444}
+        .logo span { color: var(--text-main); }
 
-.status{
-  margin-top:10px;
-  font-weight:bold;
-}
-</style>
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+
+        /* Hero Section */
+        .hero {
+            text-align: center;
+            margin-bottom: 60px;
+        }
+        .hero h1 {
+            font-size: 3rem;
+            margin-bottom: 10px;
+            background: linear-gradient(90deg, var(--neon-blue), #fff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .hero p { color: var(--text-muted); font-size: 1.2rem; }
+
+        /* Grid Layouts */
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; margin-bottom: 40px; }
+        .grid-3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 30px; }
+
+        /* Dashboard Cards */
+        .drain-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            padding-bottom: 10px;
+        }
+        .drain-header h3 { font-size: 1.4rem; }
+        
+        .status-badge {
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .status-safe { background: rgba(0, 255, 136, 0.1); color: var(--safe); border: 1px solid var(--safe); }
+        .status-warning { background: rgba(255, 170, 0, 0.1); color: var(--warning); border: 1px solid var(--warning); }
+        .status-danger { background: rgba(255, 51, 102, 0.1); color: var(--danger); border: 1px solid var(--danger); animation: pulse 1.5s infinite; }
+
+        /* Metrics */
+        .metric { margin-bottom: 15px; }
+        .metric-label {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            margin-bottom: 5px;
+        }
+        .metric-label i { width: 20px; color: var(--neon-blue); }
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        .progress-fill {
+            height: 100%;
+            border-radius: 4px;
+            transition: width 0.5s ease-in-out, background-color 0.5s ease;
+        }
+
+        /* Alerts & Architecture */
+        .section-title {
+            font-size: 1.8rem;
+            margin-bottom: 20px;
+            color: var(--neon-blue);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .alert-box {
+            padding: 15px;
+            border-left: 4px solid var(--danger);
+            background: rgba(255, 51, 102, 0.05);
+            margin-bottom: 15px;
+            border-radius: 4px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .architecture-diagram {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 40px 20px;
+            background: rgba(0,0,0,0.2);
+            border-radius: 10px;
+        }
+        .arch-node {
+            text-align: center;
+            padding: 20px;
+            background: rgba(0, 243, 255, 0.1);
+            border: 1px solid var(--neon-blue);
+            border-radius: 50%;
+            width: 120px;
+            height: 120px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+        .arch-node i { font-size: 2rem; color: var(--neon-blue); margin-bottom: 10px; }
+        .arch-arrow { color: var(--text-muted); font-size: 1.5rem; }
+
+        /* Animations */
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(255, 51, 102, 0.4); }
+            70% { box-shadow: 0 0 0 10px rgba(255, 51, 102, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(255, 51, 102, 0); }
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .grid-2, .grid-3 { grid-template-columns: 1fr; }
+            .architecture-diagram { flex-direction: column; gap: 20px; }
+            .arch-arrow { transform: rotate(90deg); }
+        }
+    </style>
 </head>
-
 <body>
 
-<div class="header">
-⚡ Smart Drain Monitoring (Municipal Dashboard)
-</div>
+    <header>
+        <div class="logo"><i class="fa-solid fa-water"></i> Smart<span>Drain</span></div>
+        <div style="color: var(--text-muted);"><i class="fa-solid fa-location-dot"></i> BMC Municipal Control Room, Mumbai</div>
+    </header>
 
-<div class="container">
+    <div class="container">
+        <section class="hero">
+            <h1>Smart Drainage Blockage Prediction</h1>
+            <p>IoT & Sensor-driven Early Warning System for Urban Flood Mitigation</p>
+        </section>
 
-<div class="card">
-<h3>🚿 Flow</h3>
-<div id="flow" class="value">--</div>
-</div>
+        <section class="grid-2">
+            <div class="glass-card">
+                <h2 class="section-title"><i class="fa-solid fa-triangle-exclamation"></i> The Problem</h2>
+                <p>During the monsoon, Mumbai faces severe waterlogging due to unmonitored plastic and silt accumulation in the underground drainage network. Reactive clearing is often too late, leading to traffic gridlocks, property damage, and health hazards.</p>
+            </div>
+            <div class="glass-card">
+                <h2 class="section-title"><i class="fa-solid fa-lightbulb"></i> The Solution</h2>
+                <p>A proactive IoT sensor network deployed across critical junctions. By measuring water flow, gas pressure (methane buildup), and moisture in real-time, our predictive algorithm calculates blockage probability before flooding occurs.</p>
+            </div>
+        </section>
 
-<div class="card">
-<h3>💧 Moisture</h3>
-<div id="moisture" class="value">--</div>
-</div>
+        <h2 class="section-title" style="margin-top: 50px;"><i class="fa-solid fa-chart-line"></i> Live Monitoring Grid</h2>
+        <section class="grid-3" id="drain-container">
+            </section>
 
-<div class="card">
-<h3>☠ Gas</h3>
-<div id="gas" class="value">--</div>
-</div>
+        <section class="grid-2" style="margin-top: 50px;">
+            <div class="glass-card">
+                <h2 class="section-title"><i class="fa-solid fa-shield-halved"></i> Risk Prediction Engine</h2>
+                <div style="text-align: center; padding: 20px;">
+                    <div style="font-size: 4rem; font-weight: 800; color: var(--danger);" id="city-risk-score">78%</div>
+                    <p style="color: var(--text-muted); font-size: 1.2rem;">Current City-Wide Flood Risk Score</p>
+                    <div style="margin-top: 20px; padding: 15px; background: rgba(255,255,255,0.05); border-radius: 8px;">
+                        <i class="fa-solid fa-brain" style="color: var(--neon-blue);"></i> AI Prediction: High probability of overflow in Kurla sector within 4 hours if flow remains restricted.
+                    </div>
+                </div>
+            </div>
 
-<div class="card">
-<h3>🚨 Blockage</h3>
-<div id="blockage" class="value">--</div>
-<div id="status" class="status">--</div>
-</div>
+            <div class="glass-card">
+                <h2 class="section-title"><i class="fa-solid fa-bell"></i> Active Alerts</h2>
+                <div id="alert-container">
+                    </div>
+            </div>
+        </section>
 
-</div>
+        <section class="glass-card" style="margin-top: 50px;">
+            <h2 class="section-title"><i class="fa-solid fa-network-wired"></i> System Architecture</h2>
+            <div class="architecture-diagram">
+                <div class="arch-node">
+                    <i class="fa-solid fa-microchip"></i>
+                    <span>Sensors<br>(Flow/Gas)</span>
+                </div>
+                <i class="fa-solid fa-arrow-right arch-arrow"></i>
+                <div class="arch-node">
+                    <i class="fa-solid fa-wifi"></i>
+                    <span>NodeMCU<br>(ESP32)</span>
+                </div>
+                <i class="fa-solid fa-arrow-right arch-arrow"></i>
+                <div class="arch-node">
+                    <i class="fa-solid fa-database"></i>
+                    <span>Firebase<br>Realtime DB</span>
+                </div>
+                <i class="fa-solid fa-arrow-right arch-arrow"></i>
+                <div class="arch-node">
+                    <i class="fa-solid fa-desktop"></i>
+                    <span>Web<br>Dashboard</span>
+                </div>
+            </div>
+        </section>
 
-<script>
-const firebaseConfig = {
-  apiKey: "AIzaSyCyvHXBbQ...",
-  databaseURL: "https://smartdrainageblockagesystem-default-rtdb.asia-southeast1.firebasedatabase.app/"
-};
+        <section style="text-align: center; margin-top: 60px; color: var(--text-muted);">
+            <h3>Developed by the Engineering Team</h3>
+            <p>Smart City Initiative 2026</p>
+        </section>
+    </div>
 
-firebase.initializeApp(firebaseConfig);
-const db = firebase.database();
+    <script>
+        /**
+         * FIREBASE INTEGRATION PLACEHOLDER
+         * Uncomment and add your config when ready to connect to hardware.
+         */
+        /*
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
-db.ref("drain1").on("value", (snapshot) => {
-  const data = snapshot.val();
+        const firebaseConfig = {
+            apiKey: "YOUR_API_KEY",
+            authDomain: "YOUR_AUTH_DOMAIN",
+            databaseURL: "YOUR_DATABASE_URL",
+            projectId: "YOUR_PROJECT_ID",
+            storageBucket: "YOUR_STORAGE_BUCKET",
+            messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+            appId: "YOUR_APP_ID"
+        };
 
-  if(data){
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
 
-    document.getElementById("flow").innerText = data.flow + " L/min";
-    document.getElementById("moisture").innerText = data.moisture + " %";
-    document.getElementById("gas").innerText = data.gas;
-    document.getElementById("blockage").innerText = data.blockage + " %";
+        // Example listener
+        const drainsRef = ref(db, 'drains');
+        onValue(drainsRef, (snapshot) => {
+            const data = snapshot.val();
+            // Update UI with real data here
+        });
+        */
 
-    let b = data.blockage;
-    let status = document.getElementById("status");
+        // --- UI SIMULATION LOGIC --- //
 
-    if(b < 40){
-      status.innerText = "SAFE";
-      status.className = "status green";
-    }
-    else if(b < 70){
-      status.innerText = "WARNING";
-      status.className = "status yellow";
-    }
-    else{
-      status.innerText = "DANGER";
-      status.className = "status red";
-    }
-  }
-});
-</script>
+        // Drain Data State
+        const drains = [
+            { id: 1, name: "Andheri East (Subway)", flow: 85, moisture: 90, gas: 30, blockage: 20 },
+            { id: 2, name: "Bandra (SV Road)", flow: 40, moisture: 60, gas: 45, blockage: 65 },
+            { id: 3, name: "Kurla (LBS Marg)", flow: 15, moisture: 95, gas: 80, blockage: 88 }
+        ];
 
+        // Helper to determine status based on blockage %
+        function getStatus(blockage) {
+            if (blockage < 40) return { text: 'SAFE', class: 'status-safe', color: 'var(--safe)' };
+            if (blockage < 75) return { text: 'WARNING', class: 'status-warning', color: 'var(--warning)' };
+            return { text: 'DANGER', class: 'status-danger', color: 'var(--danger)' };
+        }
+
+        // Generate Metric HTML
+        function createMetric(icon, label, value, unit, color) {
+            return `
+                <div class="metric">
+                    <div class="metric-label">
+                        <span><i class="${icon}"></i> ${label}</span>
+                        <span>${value}${unit}</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: ${value}%; background-color: ${color};"></div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Render Dashboard Cards
+        function renderDashboard() {
+            const container = document.getElementById('drain-container');
+            const alertContainer = document.getElementById('alert-container');
+            container.innerHTML = '';
+            alertContainer.innerHTML = '';
+
+            let highRiskCount = 0;
+
+            drains.forEach(drain => {
+                const status = getStatus(drain.blockage);
+                
+                // Card HTML
+                const card = document.createElement('div');
+                card.className = 'glass-card';
+                card.innerHTML = `
+                    <div class="drain-header">
+                        <h3>Sector: ${drain.name}</h3>
+                        <span class="status-badge ${status.class}">${status.text}</span>
+                    </div>
+                    ${createMetric('fa-solid fa-water', 'Water Flow', drain.flow, '%', '#00f3ff')}
+                    ${createMetric('fa-solid fa-droplet', 'Moisture', drain.moisture, '%', '#0088ff')}
+                    ${createMetric('fa-solid fa-cloud', 'Methane Gas', drain.gas, 'ppm', '#ffaa00')}
+                    ${createMetric('fa-solid fa-ban', 'Blockage Probability', drain.blockage, '%', status.color)}
+                `;
+                container.appendChild(card);
+
+                // Generate Alerts for Danger zones
+                if (drain.blockage >= 75) {
+                    highRiskCount++;
+                    const alert = document.createElement('div');
+                    alert.className = 'alert-box';
+                    alert.innerHTML = `
+                        <div>
+                            <strong>CRITICAL BLOCKAGE:</strong> ${drain.name}<br>
+                            <span style="font-size: 0.85rem; color: var(--text-muted);">Dispatch maintenance team immediately. Flow heavily restricted.</span>
+                        </div>
+                        <i class="fa-solid fa-triangle-exclamation" style="color: var(--danger); font-size: 1.5rem;"></i>
+                    `;
+                    alertContainer.appendChild(alert);
+                }
+            });
+
+            if (highRiskCount === 0) {
+                alertContainer.innerHTML = '<p style="color: var(--safe);"><i class="fa-solid fa-check-circle"></i> All municipal sectors operating normally.</p>';
+            }
+        }
+
+        // Simulate Real-time IoT Data Fluctuation
+        setInterval(() => {
+            drains.forEach(drain => {
+                // Randomly fluctuate values by -5 to +5
+                drain.flow = Math.max(0, Math.min(100, drain.flow + (Math.random() * 10 - 5)));
+                drain.gas = Math.max(0, Math.min(100, drain.gas + (Math.random() * 6 - 3)));
+                
+                // If flow is low, blockage tends to go up
+                if (drain.flow < 30) {
+                    drain.blockage = Math.max(0, Math.min(100, drain.blockage + (Math.random() * 5)));
+                }
+                
+                // Round values for display
+                drain.flow = Math.round(drain.flow);
+                drain.gas = Math.round(drain.gas);
+                drain.blockage = Math.round(drain.blockage);
+            });
+            renderDashboard();
+        }, 3000); // Update every 3 seconds
+
+        // Initial Render
+        renderDashboard();
+    </script>
 </body>
 </html>
