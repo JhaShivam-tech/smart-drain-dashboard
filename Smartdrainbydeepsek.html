@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+  <title>Smart Drainage System | Mumbai Municipal Dashboard</title>
+  <!-- Google Fonts + Font Awesome + Chart.js -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <!-- Firebase SDKs (Realtime Database) -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: radial-gradient(circle at 10% 20%, #0a0f2a, #030617);
+      color: #eef5ff;
+      line-height: 1.5;
+      padding: 1.5rem;
+    }
+
+    /* glass morphism core */
+    .glass-card {
+      background: rgba(12, 20, 35, 0.65);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(0, 255, 255, 0.2);
+      border-radius: 28px;
+      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(0, 255, 255, 0.05);
+      transition: transform 0.2s ease, box-shadow 0.2s;
+    }
+
+    .glass-card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 20px 35px rgba(0, 180, 255, 0.15), 0 0 0 1px rgba(0, 255, 255, 0.3);
+    }
+
+    /* custom scroll */
+    ::-webkit-scrollbar {
+      width: 6px;
+      background: #0f172a;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #0ef;
+      border-radius: 10px;
+    }
+
+    /* neon text */
+    .neon-text {
+      text-shadow: 0 0 5px #0ef, 0 0 10px #0ef;
+    }
+
+    /* animated alert flash */
+    @keyframes pulseRed {
+      0% { background-color: rgba(255, 60, 60, 0.2); border-left: 4px solid #ff3366; box-shadow: 0 0 5px #ff3366; }
+      100% { background-color: rgba(255, 60, 60, 0.5); border-left: 4px solid #ff6699; box-shadow: 0 0 12px #ff3366; }
+    }
+    .alert-flash {
+      animation: pulseRed 0.8s infinite alternate;
+    }
+
+    .status-badge {
+      display: inline-block;
+      padding: 0.2rem 0.8rem;
+      border-radius: 40px;
+      font-size: 0.7rem;
+      font-weight: bold;
+      letter-spacing: 0.5px;
+    }
+
+    .progress-bar-container {
+      background: #1e2a3a;
+      border-radius: 40px;
+      overflow: hidden;
+      height: 8px;
+    }
+
+    .progress-fill {
+      width: 0%;
+      height: 100%;
+      background: linear-gradient(90deg, #0ef, #2dd4bf);
+      border-radius: 40px;
+      transition: width 0.6s cubic-bezier(0.2, 0.9, 0.4, 1.1);
+    }
+
+    /* responsive grid */
+    .grid-4, .grid-3 {
+      display: grid;
+      gap: 1.5rem;
+    }
+    .grid-4 { grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
+    .grid-3 { grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }
+
+    @media (max-width: 780px) {
+      body { padding: 1rem; }
+    }
+
+    /* diagram nodes */
+    .arch-node {
+      background: #0a0f1e;
+      border-radius: 20px;
+      padding: 1rem;
+      text-align: center;
+      border: 1px solid #0ef55a33;
+    }
+    i.arch-icon {
+      font-size: 2rem;
+      color: #0ef;
+    }
+
+    button {
+      background: none;
+      border: none;
+    }
+  </style>
+</head>
+<body>
+
+<div class="container" style="max-width: 1400px; margin: 0 auto;">
+  
+  <!-- Hero Section -->
+  <div class="glass-card" style="padding: 2rem 2rem 1.8rem; margin-bottom: 2rem; text-align: center;">
+    <h1 style="font-size: 2.5rem; font-weight: 700; background: linear-gradient(135deg, #ffffff, #0ef); -webkit-background-clip: text; background-clip: text; color: transparent;">🌊 Smart Drainage Blockage Prediction & Alert System</h1>
+    <p style="font-size: 1.2rem; margin-top: 0.8rem; opacity: 0.9;">AI-driven urban flood resilience | Mumbai Municipal Corporation</p>
+    <div style="margin-top: 1rem; display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
+      <span class="status-badge" style="background: #0ef22a20; color: #0ef;"><i class="fas fa-microchip"></i> IoT Enabled</span>
+      <span class="status-badge" style="background: #ffaa3320; color: #ffaa33;"><i class="fas fa-chart-line"></i> Real-Time ML</span>
+      <span class="status-badge" style="background: #ff336620; color: #ff6699;"><i class="fas fa-bell"></i> Early Warning</span>
+    </div>
+  </div>
+
+  <!-- Problem & Solution Row -->
+  <div style="display: flex; flex-wrap: wrap; gap: 1.5rem; margin-bottom: 2rem;">
+    <div class="glass-card" style="flex: 1; padding: 1.6rem;">
+      <h3><i class="fas fa-exclamation-triangle" style="color: #ffaa33;"></i> Problem: Mumbai Flooding Crisis</h3>
+      <p style="margin-top: 0.75rem; color: #ccddf8;">Every monsoon, waterlogging paralyzes Mumbai due to outdated drainage & sudden blockages. Over 70% of low-lying areas face severe flood risks. Manual inspection delays response & endangers lives.</p>
+    </div>
+    <div class="glass-card" style="flex: 1; padding: 1.6rem;">
+      <h3><i class="fas fa-microchip" style="color: #0ef;"></i> Solution: IoT + Predictive AI</h3>
+      <p style="margin-top: 0.75rem; color: #ccddf8;">Network of ultrasonic flow sensors, moisture detectors & gas sensors stream live data. ML models predict blockages 48h in advance, enabling proactive cleaning & dynamic alert dispatch to BMC control rooms.</p>
+    </div>
+  </div>
+
+  <!-- Live Monitoring Dashboard (cards + drains) -->
+  <div class="glass-card" style="padding: 1.8rem; margin-bottom: 2rem;">
+    <h2 style="display: flex; align-items: center; gap: 10px; margin-bottom: 1.5rem;"><i class="fas fa-tachometer-alt" style="color: #0ef;"></i> Live Monitoring Dashboard</h2>
+    <!-- Sensor Cards: Water Flow, Moisture, Gas Level, Blockage % -->
+    <div class="grid-4" style="margin-bottom: 2rem;">
+      <div class="glass-card" style="padding: 1.2rem; text-align: center;">
+        <i class="fas fa-water" style="font-size: 2rem; color: #0ef;"></i>
+        <h4>Water Flow</h4>
+        <p class="sensor-value" id="waterFlowVal" style="font-size: 2rem; font-weight: 700;">0</p>
+        <span>L/s</span>
+        <div class="progress-bar-container mt-2"><div class="progress-fill" id="waterFlowBar" style="width:0%"></div></div>
+      </div>
+      <div class="glass-card" style="padding: 1.2rem; text-align: center;">
+        <i class="fas fa-tint" style="font-size: 2rem; color: #0ef;"></i>
+        <h4>Moisture</h4>
+        <p class="sensor-value" id="moistureVal" style="font-size: 2rem; font-weight: 700;">0</p>
+        <span>% RH</span>
+        <div class="progress-bar-container mt-2"><div class="progress-fill" id="moistureBar" style="width:0%"></div></div>
+      </div>
+      <div class="glass-card" style="padding: 1.2rem; text-align: center;">
+        <i class="fas fa-smog" style="font-size: 2rem; color: #0ef;"></i>
+        <h4>Gas Level</h4>
+        <p class="sensor-value" id="gasVal" style="font-size: 2rem; font-weight: 700;">0</p>
+        <span>ppm</span>
+        <div class="progress-bar-container mt-2"><div class="progress-fill" id="gasBar" style="width:0%"></div></div>
+      </div>
+      <div class="glass-card" style="padding: 1.2rem; text-align: center;">
+        <i class="fas fa-ban" style="font-size: 2rem; color: #0ef;"></i>
+        <h4>Blockage %</h4>
+        <p class="sensor-value" id="avgBlockageVal" style="font-size: 2rem; font-weight: 700;">0</p>
+        <span>Avg. Clog</span>
+        <div class="progress-bar-container mt-2"><div class="progress-fill" id="blockageGlobalBar" style="width:0%"></div></div>
+      </div>
+    </div>
+
+    <!-- Drains: Andheri, Bandra, Kurla -->
+    <h3 style="margin-bottom: 1rem;"><i class="fas fa-drainpipe"></i> Critical Drainage Nodes</h3>
+    <div class="grid-3" id="drainsContainer">
+      <!-- dynamic JS will populate, but static structure with IDs for each drain -->
+    </div>
+  </div>
+
+  <!-- Risk Prediction Panel + Alert System -->
+  <div style="display: flex; flex-wrap: wrap; gap: 1.5rem; margin-bottom: 2rem;">
+    <!-- Left: Risk Panel -->
+    <div class="glass-card" style="flex: 2; padding: 1.6rem;">
+      <h3><i class="fas fa-chart-pie"></i> Flood Risk & Prediction Engine</h3>
+      <div style="display: flex; flex-wrap: wrap; gap: 1.5rem; margin-top: 1rem;">
+        <div style="flex: 1; text-align: center;">
+          <canvas id="floodRiskGauge" width="180" height="180" style="max-width: 200px; margin: 0 auto;"></canvas>
+          <p class="mt-2"><strong>Flood Risk Score</strong> <span id="floodRiskScoreLabel">0%</span></p>
+        </div>
+        <div style="flex: 1;">
+          <div><i class="fas fa-chart-simple"></i> <strong>Blockage Prediction</strong></div>
+          <div class="progress-bar-container mt-1" style="height: 12px;"><div id="blockagePredBar" class="progress-fill" style="width:0%"></div></div>
+          <p id="blockagePredText" class="mt-2" style="font-weight: 500;">📍 Predicted hotspot: -</p>
+          <div class="mt-3"><i class="fas fa-microchip"></i> AI Model: LSTM + real-time fusion</div>
+        </div>
+      </div>
+    </div>
+    <!-- Right: Alert System -->
+    <div class="glass-card" style="flex: 1.2; padding: 1.6rem;" id="alertPanelCard">
+      <h3><i class="fas fa-bell"></i> Alert System <span id="alertBadgeDynamic"></span></h3>
+      <div id="alertMessageArea" style="margin: 1rem 0;">
+        <div class="status-badge" style="background:#2ecc7140; color:#2ecc71;"><i class="fas fa-check-circle"></i> SAFE: No critical risks</div>
+      </div>
+      <div id="notificationAlert" style="font-size: 0.9rem; background: #00000040; border-radius: 18px; padding: 0.8rem;"></div>
+      <div class="mt-3"><i class="fas fa-map-marker-alt"></i> High-risk zones will trigger flashing alert & BMC dispatch.</div>
+    </div>
+  </div>
+
+  <!-- System Architecture Diagram (visual style) -->
+  <div class="glass-card" style="padding: 1.8rem; margin-bottom: 2rem;">
+    <h3><i class="fas fa-project-diagram"></i> System Architecture</h3>
+    <div style="display: flex; flex-wrap: wrap; justify-content: space-between; gap: 1rem; margin-top: 1.5rem;">
+      <div class="arch-node"><i class="fas fa-microchip arch-icon"></i><br>IoT Sensors<br><small>Flow/Moisture/Gas</small></div>
+      <div class="arch-node"><i class="fas fa-wifi arch-icon"></i><br>LoRaWAN / 5G<br><small>Edge Gateway</small></div>
+      <div class="arch-node"><i class="fas fa-cloud arch-icon"></i><br>Firebase RTDB<br><small>Real-time ingestion</small></div>
+      <div class="arch-node"><i class="fas fa-brain arch-icon"></i><br>ML Prediction Core<br><small>Blockage forecasting</small></div>
+      <div class="arch-node"><i class="fas fa-chalkboard-user arch-icon"></i><br>Municipal Dashboard<br><small>Alert & GIS</small></div>
+    </div>
+  </div>
+
+  <!-- About Team Section -->
+  <div class="glass-card" style="padding: 1.6rem; text-align: center;">
+    <h3><i class="fas fa-users"></i> Smart City Task Force - Mumbai</h3>
+    <div style="display: flex; flex-wrap: wrap; justify-content: center; gap: 2rem; margin-top: 1.2rem;">
+      <div><i class="fas fa-user-circle"></i> Dr. Anjali Desai (IoT Lead)</div>
+      <div><i class="fas fa-user-circle"></i> Rohan Mehta (AI/ML)</div>
+      <div><i class="fas fa-user-circle"></i> Priya Nair (Urban Flood Specialist)</div>
+      <div><i class="fas fa-user-circle"></i> BMC-IT & Disaster Mgmt</div>
+    </div>
+    <p style="margin-top: 1rem; font-size: 0.8rem; opacity: 0.7;">Powered by real-time sensor grid & AI early-warning system | v2.0</p>
+  </div>
+</div>
+
+<script>
+  // ----------------------------- FIREBASE PLACEHOLDER INTEGRATION (Ready for real credentials) -----------------------------
+  // Firebase configuration placeholder – replace with actual project credentials for production
+  const firebaseConfig = {
+    apiKey: "AIzaSyDummyPlaceholderSmartCity123",      // <-- Replace with actual API key
+    authDomain: "smart-drainage-mumbai.firebaseapp.com",
+    databaseURL: "https://smart-drainage-mumbai-default-rtdb.asia-southeast1.firebasedatabase.app",
+    projectId: "smart-drainage-mumbai",
+    storageBucket: "smart-drainage-mumbai.appspot.com",
+    messagingSenderId: "123456789012",
+    appId: "1:123456789012:web:abcdef123456"
+  };
+  // Initialize Firebase (demo placeholder – will not break if not configured)
+  let dbRef = null;
+  try {
+    if (firebase && firebase.initializeApp) {
+      firebase.initializeApp(firebaseConfig);
+      const database = firebase.database();
+      dbRef = database.ref("drains");   // Reference to "drains" node as required
+      console.log("Firebase initialized — ready to sync with Realtime Database.");
+      // Optional listener: if real data exists it can update UI; we also run mock updates.
+      dbRef.once('value', (snapshot) => {
+        if (snapshot.exists()) {
+          console.log("External drain data found, you could integrate:", snapshot.val());
+          // For this demo, we keep mock data dynamic; uncomment below to fully override:
+          // updateFromFirebase(snapshot.val());
+        }
+      });
+    }
+  } catch(e) { console.warn("Firebase init placeholder (no real credentials), using demo mock data.", e); }
+  
+  // ----------------------------- MOCK REAL-TIME DATA & DASHBOARD LOGIC ---------------------------------
+  // Drains data structure
+  const drains = [
+    { id: "drain1", name: "Andheri (Jogeshwari-Vikhroli Link Rd)", riskScore: 45, blockage: 42, statusColor: "yellow", riskPercent: 45 },
+    { id: "drain2", name: "Bandra (Kalanagar & BKC Outfall)", riskScore: 28, blockage: 28, statusColor: "green", riskPercent: 28 },
+    { id: "drain3", name: "Kurla (S.G. Barve Marg)", riskScore: 72, blockage: 71, statusColor: "red", riskPercent: 72 }
+  ];
+
+  let globalMetrics = {
+    waterFlow: 54,   // L/s
+    moisture: 68,    // %
+    gasLevel: 180,   // ppm
+    avgBlockage: 47  // %
+  };
+
+  let floodRiskChart; // Chart.js instance
+
+  // Helper: update all UI from current drains & metrics
+  function updateDashboardUI() {
+    // Update 4 metric cards
+    document.getElementById("waterFlowVal").innerText = Math.floor(globalMetrics.waterFlow);
+    document.getElementById("moistureVal").innerText = Math.floor(globalMetrics.moisture);
+    document.getElementById("gasVal").innerText = Math.floor(globalMetrics.gasLevel);
+    document.getElementById("avgBlockageVal").innerText = Math.floor(globalMetrics.avgBlockage);
+    document.getElementById("waterFlowBar").style.width = Math.min(100, (globalMetrics.waterFlow/120)*100) + "%";
+    document.getElementById("moistureBar").style.width = Math.min(100, globalMetrics.moisture) + "%";
+    document.getElementById("gasBar").style.width = Math.min(100, (globalMetrics.gasLevel/500)*100) + "%";
+    document.getElementById("blockageGlobalBar").style.width = globalMetrics.avgBlockage + "%";
+
+    // Render drain cards dynamically
+    const container = document.getElementById("drainsContainer");
+    container.innerHTML = "";
+    drains.forEach((drain, idx) => {
+      const risk = Math.min(100, Math.max(0, drain.riskPercent));
+      let statusColorClass = "";
+      let statusText = "";
+      if (risk < 40) { statusColorClass = "#2ecc71"; statusText = "LOW RISK"; }
+      else if (risk < 70) { statusColorClass = "#f1c40f"; statusText = "MODERATE"; }
+      else { statusColorClass = "#e74c3c"; statusText = "CRITICAL"; }
+      const card = document.createElement("div");
+      card.className = "glass-card";
+      card.style.padding = "1.2rem";
+      card.innerHTML = `
+        <div style="display: flex; justify-content: space-between;"><strong><i class="fas fa-map-pin"></i> ${drain.name}</strong> 
+        <span style="background:${statusColorClass}20; color:${statusColorClass}; padding: 0.2rem 0.6rem; border-radius: 20px;">${statusText}</span></div>
+        <div class="mt-2"><span>Risk Score: <strong id="riskScore_${idx}">${risk}%</strong></span>
+        <div class="progress-bar-container mt-1"><div class="progress-fill" id="riskBar_${idx}" style="width:${risk}%; background:${risk>70?'#ff3366':'#0ef'}"></div></div>
+        <div class="mt-2">Blockage %: <span id="blockageVal_${idx}">${drain.blockage}%</span>
+        <div class="progress-bar-container mt-1"><div class="progress-fill" id="blockageBar_${idx}" style="width:${drain.blockage}%"></div></div>
+        <div class="mt-2"><i class="fas fa-chart-line"></i> Prediction Trend: ${risk>65 ? '⚠️ Imminent' : (risk>30 ? 'Monitor' : 'Stable')}</div>
+        </div>
+      `;
+      container.appendChild(card);
+    });
+    // refresh specific risk & blockage spans after innerHTML (dynamically)
+    drains.forEach((drain, idx) => {
+      const riskSpan = document.getElementById(`riskScore_${idx}`);
+      if(riskSpan) riskSpan.innerText = Math.floor(drain.riskPercent) + "%";
+      const blockageSpan = document.getElementById(`blockageVal_${idx}`);
+      if(blockageSpan) blockageSpan.innerText = Math.floor(drain.blockage) + "%";
+      const riskBar = document.getElementById(`riskBar_${idx}`);
+      if(riskBar) riskBar.style.width = drain.riskPercent + "%";
+      const blockageBar = document.getElementById(`blockageBar_${idx}`);
+      if(blockageBar) blockageBar.style.width = drain.blockage + "%";
+    });
+    
+    // Update overall Flood Risk Score (weighted average)
+    let totalRisk = drains.reduce((sum, d) => sum + d.riskPercent, 0);
+    let avgRisk = totalRisk / drains.length;
+    let floodRiskScore = Math.min(100, avgRisk + (globalMetrics.avgBlockage/100)*15);
+    floodRiskScore = Math.min(100, Math.max(0, floodRiskScore));
+    document.getElementById("floodRiskScoreLabel").innerText = Math.floor(floodRiskScore) + "%";
+    if(floodRiskChart) {
+      floodRiskChart.data.datasets[0].data = [floodRiskScore, 100 - floodRiskScore];
+      floodRiskChart.update();
+    }
+    // Blockage Prediction UI: highest blockage drain & predicted hotspot
+    let worstDrain = drains.reduce((max, d) => d.blockage > max.blockage ? d : max, drains[0]);
+    let predictedBlockagePercent = Math.min(100, worstDrain.blockage + (globalMetrics.moisture/100)*12);
+    document.getElementById("blockagePredBar").style.width = predictedBlockagePercent + "%";
+    document.getElementById("blockagePredText").innerHTML = `📍 Predicted hotspot: <strong>${worstDrain.name}</strong> | Est. blockage ${Math.floor(predictedBlockagePercent)}% in next 12h`;
+    
+    // ALERT SYSTEM (SAFE / WARNING / DANGER) with flashing
+    let overallAlertLevel = "SAFE";
+    let alertColor = "#2ecc71";
+    let alertMessage = "✅ All systems nominal. Drains functioning.";
+    let isFlashing = false;
+    if (floodRiskScore > 70 || worstDrain.riskPercent > 75) {
+      overallAlertLevel = "DANGER";
+      alertColor = "#e74c3c";
+      alertMessage = "🔴 CRITICAL ALERT: High flood risk! Immediate blockage clearance needed in " + worstDrain.name;
+      isFlashing = true;
+    } else if (floodRiskScore > 45 || worstDrain.riskPercent > 55) {
+      overallAlertLevel = "WARNING";
+      alertColor = "#f39c12";
+      alertMessage = "⚠️ WARNING: Elevated blockage risk. Monitor drains & prepare pumps.";
+      isFlashing = true;
+    } else {
+      overallAlertLevel = "SAFE";
+      alertColor = "#2ecc71";
+      alertMessage = "🟢 SAFE: No immediate flooding threat. Continuous monitoring active.";
+    }
+    const alertArea = document.getElementById("alertMessageArea");
+    alertArea.innerHTML = `<div class="status-badge" style="background:${alertColor}30; color:${alertColor}; font-weight:bold;"><i class="fas ${overallAlertLevel==='DANGER'?'fa-skull-crosswalk':(overallAlertLevel==='WARNING'?'fa-exclamation-triangle':'fa-check-circle')}"></i> ${overallAlertLevel} : ${alertMessage}</div>`;
+    const alertPanel = document.getElementById("alertPanelCard");
+    if (isFlashing && overallAlertLevel !== "SAFE") {
+      alertPanel.classList.add("alert-flash");
+      // notification style
+      const notifDiv = document.getElementById("notificationAlert");
+      notifDiv.innerHTML = `<i class="fas fa-bell"></i> ${new Date().toLocaleTimeString()} - ${overallAlertLevel} ALERT: ${worstDrain.name} risk ${Math.floor(worstDrain.riskPercent)}% | Action required.`;
+      notifDiv.style.background = overallAlertLevel==="DANGER"?"#ff336620":"#f39c1220";
+    } else {
+      alertPanel.classList.remove("alert-flash");
+      document.getElementById("notificationAlert").innerHTML = `<i class="fas fa-info-circle"></i> No active alerts — last check ${new Date().toLocaleTimeString()}`;
+    }
+    document.getElementById("alertBadgeDynamic").innerHTML = `<span class="status-badge" style="background:${alertColor}40;">${overallAlertLevel}</span>`;
+  }
+
+  // Random simulation of sensor + drain data (IoT simulation)
+  function simulateSensorData() {
+    // vary metrics realistically
+    globalMetrics.waterFlow = Math.min(130, Math.max(20, globalMetrics.waterFlow + (Math.random() - 0.5) * 6));
+    globalMetrics.moisture = Math.min(98, Math.max(30, globalMetrics.moisture + (Math.random() - 0.5) * 4));
+    globalMetrics.gasLevel = Math.min(550, Math.max(80, globalMetrics.gasLevel + (Math.random() - 0.5) * 12));
+    let newAvgBlock = (drains.reduce((sum,d)=>sum+d.blockage,0)/drains.length);
+    globalMetrics.avgBlockage = Math.min(98, Math.max(10, newAvgBlock + (Math.random() - 0.5)*2));
+    // update each drain's blockage & risk correlation
+    drains.forEach(drain => {
+      let delta = (Math.random() - 0.5) * 4.5;
+      let newBlock = Math.min(98, Math.max(5, drain.blockage + delta));
+      drain.blockage = parseFloat(newBlock.toFixed(1));
+      // risk formula: blockage% + waterflow/moisture contribution
+      let riskBase = drain.blockage * 0.7;
+      let envRisk = (globalMetrics.waterFlow / 130) * 15 + (globalMetrics.moisture / 100) * 15;
+      let newRisk = Math.min(98, riskBase + envRisk);
+      drain.riskPercent = Math.min(100, Math.max(5, newRisk));
+      if (drain.riskPercent < 40) drain.statusColor = "green";
+      else if (drain.riskPercent < 70) drain.statusColor = "yellow";
+      else drain.statusColor = "red";
+    });
+    updateDashboardUI();
+  }
+
+  // Create Chart.js doughnut for Flood Risk Score
+  function initFloodRiskChart() {
+    const ctx = document.getElementById('floodRiskGauge').getContext('2d');
+    floodRiskChart = new Chart(ctx, {
+      type: 'doughnut',
+      data: {
+        labels: ['Risk Level', 'Safe Margin'],
+        datasets: [{
+          data: [42, 58],
+          backgroundColor: ['#ff3366', '#1e2a3a'],
+          borderWidth: 0,
+          borderRadius: 12,
+          cutout: '70%',
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: true,
+        plugins: { tooltip: { enabled: true }, legend: { display: false } }
+      }
+    });
+  }
+
+  // generate random initial values and start live simulation
+  function initMockDataAndSimulation() {
+    // randomize drains
+    drains.forEach(d => {
+      d.blockage = Math.floor(Math.random() * 85 + 5);
+      d.riskPercent = Math.min(98, d.blockage * 0.8 + Math.random() * 20);
+      if (d.riskPercent > 70) d.statusColor = "red";
+      else if (d.riskPercent > 40) d.statusColor = "yellow";
+      else d.statusColor = "green";
+    });
+    globalMetrics.waterFlow = Math.random() * 80 + 20;
+    globalMetrics.moisture = Math.random() * 70 + 25;
+    globalMetrics.gasLevel = Math.random() * 300 + 80;
+    let avg = drains.reduce((s,d)=>s+d.blockage,0)/drains.length;
+    globalMetrics.avgBlockage = avg;
+    updateDashboardUI();
+    setInterval(() => {
+      simulateSensorData();
+    }, 5000); // update every 5 secs for smooth demo
+  }
+
+  // (optional) firebase integration data writer comment: to push drain data to Firebase realtime db
+  // we show placeholder pattern: firebase.database().ref("drains").set(drainsData);
+  // the following function is an example of how to sync mock data to Firebase (commented)
+  /*
+  function syncToFirebase() {
+    if(dbRef) {
+      dbRef.set(drains).catch(e=>console.warn("Firebase write placeholder",e));
+    }
+  }
+  */
+
+  window.addEventListener('DOMContentLoaded', () => {
+    initFloodRiskChart();
+    initMockDataAndSimulation();
+    // Additional integration comment: The placeholder for firebase.database().ref("drains") is already used above.
+    console.log("Dashboard ready. Firebase ref: ", dbRef ? "dbRef initialized (drains reference)" : "placeholder mode - mock data active");
+  });
+</script>
+</body>
+</html>
