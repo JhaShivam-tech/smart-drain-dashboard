@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Drainage Monitoring System | Ministry of Housing and Urban Affairs</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #f8fafc; color: #0f172a; }
+        .govt-header { border-top: 4px solid #f97316; /* Saffron Top Border */ }
+        .card-shadow { box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03); }
+        
+        /* Smooth Transitions */
+        * { transition: all 0.2s ease-in-out; }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        
+        /* Chatbot Animation */
+        @keyframes popUp {
+            from { opacity: 0; transform: translateY(20px) scale(0.9); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        .chat-window { animation: popUp 0.3s ease-out; }
+
+        /* Role Display Logic */
+        body.role-public .admin-only { display: none !important; }
+        body.role-admin .public-only { display: none !important; }
+
+        .blinking-red { animation: blinker 1s linear infinite; color: #dc2626; font-weight: bold; }
+        @keyframes blinker { 50% { opacity: 0.3; } }
+    </style>
+</head>
+<body class="role-admin flex flex-col min-h-screen">
+
+    <div class="govt-header bg-slate-900 text-slate-200 text-xs py-2 px-6 flex justify-between items-center z-50">
+        <div class="flex items-center gap-4">
+            <span><i class="fa-solid fa-building-flag mr-1 text-orange-400"></i> Government of India | Smart Cities Mission</span>
+            <span class="hidden md:inline border-l border-slate-600 pl-4">Ministry of Housing and Urban Affairs</span>
+        </div>
+        <div class="flex items-center gap-4 font-semibold">
+            <span class="text-red-400"><i class="fa-solid fa-phone mr-1"></i> Disaster Helpline: 1916 / 1073</span>
+            <div class="border-l border-slate-600 pl-4 flex items-center gap-2">
+                <span>View Mode:</span>
+                <select id="roleSelector" onchange="changeRole(this.value)" class="bg-slate-800 text-white border border-slate-600 rounded px-2 py-1 outline-none cursor-pointer">
+                    <option value="admin">Municipal Authority (Admin)</option>
+                    <option value="public">Citizen Portal (Public)</option>
+                </select>
+            </div>
+        </div>
+    </div>
+
+    <nav class="bg-white border-b border-slate-200 sticky top-0 z-40 card-shadow">
+        <div class="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
+            <div class="flex items-center gap-4">
+                <div class="w-12 h-12 bg-blue-600 rounded-full flex items-center justify-center text-white text-2xl shadow-md">
+                    <i class="fa-solid fa-water"></i>
+                </div>
+                <div>
+                    <h1 class="text-2xl font-bold text-slate-800 tracking-tight">SmartDrain Analytics</h1>
+                    <p class="text-sm text-slate-500 font-medium">IoT Based Blockage Prediction System</p>
+                </div>
+            </div>
+            <div class="flex items-center gap-4">
+                <div id="connection-status" class="flex items-center gap-2 px-4 py-2 bg-slate-100 rounded-full border border-slate-200 text-sm font-semibold text-slate-600">
+                    <span class="relative flex h-3 w-3">
+                      <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-yellow-400 opacity-75"></span>
+                      <span class="relative inline-flex rounded-full h-3 w-3 bg-yellow-500"></span>
+                    </span>
+                    Connecting to Cloud...
+                </div>
+                <button class="admin-only bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-md font-semibold text-sm shadow">
+                    <i class="fa-solid fa-download mr-1"></i> Export Report
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <main class="flex-grow max-w-7xl mx-auto w-full px-6 py-8">
+        
+        <div id="system-alert" class="bg-emerald-50 border-l-4 border-emerald-500 p-4 rounded-r-md card-shadow mb-8 flex justify-between items-center">
+            <div class="flex items-center">
+                <i id="alert-icon" class="fa-solid fa-circle-check text-emerald-500 text-2xl mr-4"></i>
+                <div>
+                    <h3 id="alert-title" class="text-emerald-800 font-bold text-lg">System Status: Normal</h3>
+                    <p id="alert-desc" class="text-emerald-600 text-sm">All drainage nodes in Mumbai East region are operating smoothly. No immediate action required.</p>
+                </div>
+            </div>
+            <div class="text-right">
+                <p class="text-xs text-slate-500 font-bold uppercase">Current Blockage</p>
+                <p class="text-3xl font-bold text-slate-800"><span id="main-blockage">0</span>%</p>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-4 gap-6 mb-8">
+            <div class="bg-white p-6 rounded-xl border border-slate-200 card-shadow lg:col-span-1">
+                <h3 class="text-sm font-bold text-slate-400 uppercase tracking-wider mb-4 border-b pb-2">Active Node details</h3>
+                <ul class="space-y-3 text-sm">
+                    <li class="flex justify-between"><span class="text-slate-500">Location ID:</span> <span class="font-bold text-slate-800">LTCE-01</span></li>
+                    <li class="flex justify-between"><span class="text-slate-500">Zone:</span> <span class="font-bold text-slate-800">Kurla / Navi Mumbai</span></li>
+                    <li class="flex justify-between"><span class="text-slate-500">Hardware:</span> <span class="font-bold text-slate-800">ESP32 + Sensors</span></li>
+                    <li class="flex justify-between"><span class="text-slate-500">Last Ping:</span> <span class="font-bold text-emerald-600" id="last-ping">Just now</span></li>
+                </ul>
+                <div class="mt-6 pt-4 border-t border-slate-100 admin-only">
+                    <button class="w-full border border-blue-600 text-blue-600 hover:bg-blue-50 py-2 rounded font-semibold text-sm">
+                        <i class="fa-solid fa-gear mr-1"></i> Configure Node
+                    </button>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-4 lg:col-span-3">
+                <div class="bg-white p-5 rounded-xl border border-slate-200 card-shadow flex flex-col justify-between">
+                    <div class="flex justify-between items-start">
+                        <div class="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600"><i class="fa-solid fa-water"></i></div>
+                        <span class="text-xs font-bold px-2 py-1 bg-slate-100 text-slate-500 rounded">Liters/Sec</span>
+                    </div>
+                    <div>
+                        <p class="text-sm font-bold text-slate-400 uppercase mt-4">Water Flow Rate</p>
+                        <p class="text-4xl font-bold text-slate-800 mt-1"><span id="val-flow">0.0</span></p>
+                    </div>
+                </div>
+                <div class="bg-white p-5 rounded-xl border border-slate-200 card-shadow flex flex-col justify-between">
+                    <div class="flex justify-between items-start">
+                        <div class="w-10 h-10 rounded-full bg-cyan-100 flex items-center justify-center text-cyan-600"><i class="fa-solid fa-droplet"></i></div>
+                        <span class="text-xs font-bold px-2 py-1 bg-slate-100 text-slate-500 rounded">Percentage</span>
+                    </div>
+                    <div>
+                        <p class="text-sm font-bold text-slate-400 uppercase mt-4">Soil Moisture</p>
+                        <p class="text-4xl font-bold text-slate-800 mt-1"><span id="val-moisture">0</span><span class="text-xl text-slate-400">%</span></p>
+                    </div>
+                </div>
+                <div class="bg-white p-5 rounded-xl border border-slate-200 card-shadow flex flex-col justify-between">
+                    <div class="flex justify-between items-start">
+                        <div class="w-10 h-10 rounded-full bg-orange-100 flex items-center justify-center text-orange-600"><i class="fa-solid fa-cloud"></i></div>
+                        <span class="text-xs font-bold px-2 py-1 bg-slate-100 text-slate-500 rounded">PPM</span>
+                    </div>
+                    <div>
+                        <p class="text-sm font-bold text-slate-400 uppercase mt-4">Methane (CH4)</p>
+                        <p class="text-4xl font-bold text-slate-800 mt-1"><span id="val-gas">0</span></p>
+                    </div>
+                </div>
+                <div class="bg-white p-5 rounded-xl border border-slate-200 card-shadow flex flex-col justify-between">
+                    <div class="flex justify-between items-start">
+                        <div class="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center text-purple-600"><i class="fa-solid fa-ruler-vertical"></i></div>
+                        <span class="text-xs font-bold px-2 py-1 bg-slate-100 text-slate-500 rounded">Centimeters</span>
+                    </div>
+                    <div>
+                        <p class="text-sm font-bold text-slate-400 uppercase mt-4">Surface Clearance</p>
+                        <p class="text-4xl font-bold text-slate-800 mt-1"><span id="val-distance">0.0</span></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 admin-only">
+            
+            <div class="bg-white p-6 rounded-xl border border-slate-200 card-shadow lg:col-span-2">
+                <div class="flex justify-between items-center mb-6">
+                    <h3 class="text-base font-bold text-slate-800">Live Blockage Trend (Real-time)</h3>
+                    <span class="text-xs px-2 py-1 bg-blue-100 text-blue-700 font-semibold rounded"><i class="fa-solid fa-circle-dot text-[10px] mr-1"></i> Live</span>
+                </div>
+                <div class="h-64 w-full">
+                    <canvas id="blockageChart"></canvas>
+                </div>
+            </div>
+
+            <div class="bg-white p-6 rounded-xl border border-slate-200 card-shadow lg:col-span-1 flex flex-col">
+                <h3 class="text-base font-bold text-slate-800 mb-4 border-b pb-2">System Audit Logs</h3>
+                <div id="activity-logs" class="flex-1 overflow-y-auto space-y-3 text-xs pr-2">
+                    <div class="bg-slate-50 p-2 rounded border border-slate-100 text-slate-500">System initialized. Waiting for telemetry data...</div>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <div class="fixed bottom-6 right-6 z-50 flex flex-col items-end">
+        
+        <div id="chat-window" class="hidden bg-white w-80 rounded-xl card-shadow border border-slate-200 mb-4 overflow-hidden flex-col chat-window">
+            <div class="bg-blue-600 text-white p-4 flex justify-between items-center">
+                <div class="flex items-center gap-2">
+                    <i class="fa-solid fa-robot text-xl"></i>
+                    <div>
+                        <h4 class="font-bold text-sm">Citizen Sahayak</h4>
+                        <p class="text-[10px] text-blue-200">Govt. AI Assistant</p>
+                    </div>
+                </div>
+                <button onclick="toggleChat()" class="text-white hover:text-blue-200"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            
+            <div id="chat-messages" class="p-4 h-64 overflow-y-auto bg-slate-50 text-sm space-y-4">
+                <div class="bg-white p-3 rounded-lg border border-slate-200 shadow-sm inline-block rounded-tl-none text-slate-700">
+                    Namaste! 🙏 I am the SmartDrain AI assistant. How can I help you today?
+                </div>
+                <div class="flex flex-wrap gap-2 mt-2">
+                    <button onclick="sendChatMsg('What is this project?')" class="text-xs bg-blue-50 border border-blue-200 text-blue-700 px-3 py-1.5 rounded-full hover:bg-blue-100 transition">What is this project?</button>
+                    <button onclick="sendChatMsg('Report a Blockage')" class="text-xs bg-red-50 border border-red-200 text-red-700 px-3 py-1.5 rounded-full hover:bg-red-100 transition">Report a Blockage</button>
+                    <button onclick="sendChatMsg('Check current risk')" class="text-xs bg-slate-200 border border-slate-300 text-slate-700 px-3 py-1.5 rounded-full hover:bg-slate-300 transition">Check current risk</button>
+                </div>
+            </div>
+            
+            <div class="p-3 border-t border-slate-200 bg-white flex gap-2">
+                <input type="text" id="chat-input" placeholder="Type your query..." class="flex-1 border border-slate-300 rounded px-3 py-2 text-sm outline-none focus:border-blue-500">
+                <button onclick="handleManualChat()" class="bg-blue-600 text-white px-3 py-2 rounded hover:bg-blue-700"><i class="fa-solid fa-paper-plane"></i></button>
+            </div>
+        </div>
+
+        <button onclick="toggleChat()" class="w-14 h-14 bg-blue-600 hover:bg-blue-700 text-white rounded-full card-shadow flex items-center justify-center text-2xl relative">
+            <i class="fa-solid fa-message"></i>
+            <span class="absolute top-0 right-0 w-3 h-3 bg-red-500 border-2 border-white rounded-full"></span>
+        </button>
+    </div>
+
+    <script type="module">
+        // --- 1. VIEW ROLE TOGGLE (SIH Feature) ---
+        window.changeRole = function(role) {
+            document.body.className = `role-${role} flex flex-col min-h-screen`;
+        };
+
+        // --- 2. CHART.JS INITIALIZATION ---
+        const ctx = document.getElementById('blockageChart').getContext('2d');
+        const chartData = {
+            labels: [],
+            datasets: [{
+                label: 'Blockage Risk (%)',
+                data: [],
+                borderColor: '#2563eb', // Blue-600
+                backgroundColor: 'rgba(37, 99, 235, 0.1)',
+                borderWidth: 2,
+                fill: true,
+                tension: 0.4,
+                pointRadius: 2,
+                pointBackgroundColor: '#2563eb'
+            }]
+        };
+        const blockageChart = new Chart(ctx, {
+            type: 'line',
+            data: chartData,
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: { beginAtZero: true, max: 100 },
+                    x: { display: true }
+                },
+                plugins: { legend: { display: false } },
+                animation: { duration: 0 }
+            }
+        });
+
+        // --- 3. FIREBASE INTEGRATION (Real-time) ---
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+
+        // Firebase Config
+        const firebaseConfig = {
+            apiKey: "AIzaSyCyvHXBBQ_mQ5hevFGWHozMrM_Nnm_hbGM",
+            databaseURL: "https://smartdrainageblockagesystem-default-rtdb.asia-southeast1.firebasedatabase.app/"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+        const drainRef = ref(db, "drain1");
+
+        // UI Elements
+        const connStatus = document.getElementById('connection-status');
+        let currentBlockage = 0; // Global variable for chatbot
+
+        // Fetch Data
+        onValue(drainRef, (snapshot) => {
+            const data = snapshot.val();
+            if (!data) return;
+
+            // Connection Active UI
+            connStatus.innerHTML = `<span class="relative flex h-3 w-3"><span class="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span></span> System Online`;
+            connStatus.className = "flex items-center gap-2 px-4 py-2 bg-emerald-50 rounded-full border border-emerald-200 text-sm font-semibold text-emerald-700";
+            document.getElementById('last-ping').innerText = new Date().toLocaleTimeString();
+
+            // Extract values
+            const flow = parseFloat(data.flow) || 0;
+            const moisture = parseInt(data.moisture) || 0;
+            const gas = parseInt(data.gas) || 0;
+            const distance = parseFloat(data.distance) || 0;
+            const blockage = parseInt(data.blockage) || 0;
+            currentBlockage = blockage; // update global
+
+            // Update Metric Cards
+            document.getElementById('val-flow').innerText = flow.toFixed(1);
+            document.getElementById('val-moisture').innerText = moisture;
+            document.getElementById('val-gas').innerText = gas;
+            document.getElementById('val-distance').innerText = distance.toFixed(1);
+            document.getElementById('main-blockage').innerText = blockage;
+
+            // Update Chart
+            const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second:'2-digit' });
+            chartData.labels.push(timeStr);
+            chartData.datasets[0].data.push(blockage);
+            if (chartData.labels.length > 15) {
+                chartData.labels.shift();
+                chartData.datasets[0].data.shift();
+            }
+            blockageChart.update();
+
+            // Handle Alert States
+            updateAlertBanner(blockage);
+
+            // Log Activity
+            logActivity(`Data Sync: Flow=${flow.toFixed(1)}L/s, Risk=${blockage}%`);
+
+        }, (error) => {
+            connStatus.innerHTML = `<i class="fa-solid fa-triangle-exclamation"></i> Offline`;
+            connStatus.className = "flex items-center gap-2 px-4 py-2 bg-red-50 rounded-full border border-red-200 text-sm font-semibold text-red-700";
+            console.error("Firebase Error:", error);
+        });
+
+        // --- 4. ALERT LOGIC ---
+        function updateAlertBanner(blockage) {
+            const banner = document.getElementById('system-alert');
+            const icon = document.getElementById('alert-icon');
+            const title = document.getElementById('alert-title');
+            const desc = document.getElementById('alert-desc');
+
+            if (blockage >= 90) {
+                banner.className = "bg-red-50 border-l-4 border-red-600 p-4 rounded-r-md card-shadow mb-8 flex justify-between items-center";
+                icon.className = "fa-solid fa-triangle-exclamation text-red-600 text-3xl mr-4 blinking-red";
+                title.className = "text-red-800 font-bold text-lg uppercase";
+                title.innerText = "CRITICAL EMERGENCY ALERT";
+                desc.className = "text-red-700 text-sm font-semibold";
+                desc.innerText = "Blockage exceeded 90%. Flooding imminent. Field response team dispatched to LTCE-01.";
+            } else if (blockage >= 70) {
+                banner.className = "bg-yellow-50 border-l-4 border-yellow-500 p-4 rounded-r-md card-shadow mb-8 flex justify-between items-center";
+                icon.className = "fa-solid fa-bell text-yellow-600 text-2xl mr-4";
+                title.className = "text-yellow-800 font-bold text-lg";
+                title.innerText = "Warning: Elevated Risk";
+                desc.className = "text-yellow-700 text-sm";
+                desc.innerText = "Blockage levels are high. Continuous monitoring advised.";
+            } else {
+                banner.className = "bg-emerald-50 border-l-4 border-emerald-500 p-4 rounded-r-md card-shadow mb-8 flex justify-between items-center";
+                icon.className = "fa-solid fa-circle-check text-emerald-500 text-2xl mr-4";
+                title.className = "text-emerald-800 font-bold text-lg";
+                title.innerText = "System Status: Normal";
+                desc.className = "text-emerald-600 text-sm";
+                desc.innerText = "All drainage nodes in Mumbai region are operating smoothly.";
+            }
+        }
+
+        // --- 5. SYSTEM LOGS ---
+        function logActivity(msg) {
+            const logBox = document.getElementById('activity-logs');
+            const time = new Date().toLocaleTimeString();
+            const logHTML = `<div class="bg-slate-50 p-2 rounded border border-slate-100"><span class="text-blue-600 font-bold">[${time}]</span> <span class="text-slate-700">${msg}</span></div>`;
+            logBox.insertAdjacentHTML('afterbegin', logHTML);
+            if (logBox.children.length > 20) logBox.lastElementChild.remove();
+        }
+
+        // --- 6. CHATBOT LOGIC ---
+        window.toggleChat = function() {
+            const chatBox = document.getElementById('chat-window');
+            if(chatBox.classList.contains('hidden')) {
+                chatBox.classList.remove('hidden');
+                chatBox.classList.add('flex');
+            } else {
+                chatBox.classList.add('hidden');
+                chatBox.classList.remove('flex');
+            }
+        };
+
+        window.sendChatMsg = function(msg) {
+            appendChat("user", msg);
+            document.getElementById('chat-input').value = ""; // clear input
+            
+            // Bot Response Delay simulation
+            setTimeout(() => {
+                if(msg.includes('project')) {
+                    appendChat("bot", "This is an IoT & AI based system built by Lokmanya Tilak College students for the Smart India Hackathon. It predicts drainage blockages to prevent urban flooding.");
+                } else if(msg.includes('Report')) {
+                    appendChat("bot", "To report a manual blockage, please provide your Pincode or call the BMC Disaster Management Helpline at 1916.");
+                } else if(msg.includes('risk')) {
+                    appendChat("bot", `Currently, the live blockage risk at node LTCE-01 is ${currentBlockage}%. ${currentBlockage >= 90 ? 'Please avoid the area.' : 'Status is under control.'}`);
+                } else {
+                    appendChat("bot", "I have logged your query. An official will review it. For emergencies, call 1073.");
+                }
+            }, 600);
+        };
+
+        window.handleManualChat = function() {
+            const input = document.getElementById('chat-input').value.trim();
+            if(input !== "") sendChatMsg(input);
+        };
+
+        // Trigger send on Enter key
+        document.getElementById('chat-input').addEventListener("keypress", function(event) {
+            if (event.key === "Enter") {
+                event.preventDefault();
+                handleManualChat();
+            }
+        });
+
+        function appendChat(sender, text) {
+            const chatBox = document.getElementById('chat-messages');
+            // Remove quick replies if they exist
+            const quickReplies = chatBox.querySelector('.gap-2');
+            if(quickReplies) quickReplies.remove();
+
+            const isUser = sender === "user";
+            const msgClass = isUser ? "bg-blue-600 text-white self-end rounded-tr-none ml-auto" : "bg-white text-slate-700 border border-slate-200 rounded-tl-none";
+            
+            const msgHTML = `<div class="p-3 rounded-lg shadow-sm mb-3 max-w-[85%] ${msgClass}">${text}</div>`;
+            chatBox.insertAdjacentHTML('beforeend', msgHTML);
+            chatBox.scrollTop = chatBox.scrollHeight;
+        }
+    </script>
+</body>
+</html>
