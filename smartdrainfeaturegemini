@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LTCE CORE | NEXUS SYSTEM 2100</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700;900&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        :root {
+            --neon-blue: #00f3ff;
+            --neon-pink: #ff00ea;
+            --neon-red: #ff003c;
+            --neon-green: #00ff66;
+            --bg-dark: #050505;
+            --grid-color: rgba(0, 243, 255, 0.1);
+        }
+
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: var(--bg-dark);
+            color: var(--neon-blue);
+            font-family: 'Share Tech Mono', monospace;
+            background-image: 
+                linear-gradient(var(--grid-color) 1px, transparent 1px),
+                linear-gradient(90deg, var(--grid-color) 1px, transparent 1px);
+            background-size: 30px 30px;
+        }
+
+        /* CRT Scanline Effect */
+        body::after {
+            content: " ";
+            display: block;
+            position: absolute;
+            top: 0; left: 0; bottom: 0; right: 0;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+            z-index: 2;
+            background-size: 100% 2px, 3px 100%;
+            pointer-events: none;
+        }
+
+        h1, h2, h3, .orbitron { font-family: 'Orbitron', sans-serif; }
+
+        .scifi-panel {
+            background: rgba(0, 20, 30, 0.6);
+            border: 1px solid var(--neon-blue);
+            box-shadow: 0 0 10px rgba(0, 243, 255, 0.2), inset 0 0 20px rgba(0, 243, 255, 0.1);
+            position: relative;
+            backdrop-filter: blur(5px);
+        }
+        
+        /* Panel Corner Accents */
+        .scifi-panel::before, .scifi-panel::after {
+            content: ''; position: absolute; width: 15px; height: 15px; border: 2px solid var(--neon-blue);
+        }
+        .scifi-panel::before { top: -1px; left: -1px; border-right: none; border-bottom: none; }
+        .scifi-panel::after { bottom: -1px; right: -1px; border-left: none; border-top: none; }
+
+        .glow-text { text-shadow: 0 0 5px var(--neon-blue), 0 0 10px var(--neon-blue); }
+        .glow-text-red { text-shadow: 0 0 5px var(--neon-red), 0 0 20px var(--neon-red); color: var(--neon-red); }
+        .glow-text-green { text-shadow: 0 0 5px var(--neon-green), 0 0 15px var(--neon-green); color: var(--neon-green); }
+
+        /* Glitch Animation */
+        @keyframes glitch {
+            0% { transform: translate(0) }
+            20% { transform: translate(-2px, 2px) }
+            40% { transform: translate(-2px, -2px) }
+            60% { transform: translate(2px, 2px) }
+            80% { transform: translate(2px, -2px) }
+            100% { transform: translate(0) }
+        }
+        .glitch-active { animation: glitch 0.2s cubic-bezier(.25, .46, .45, .94) both infinite; }
+
+        /* Radar Scanner Animation */
+        .radar {
+            position: relative; width: 200px; height: 200px; border-radius: 50%;
+            border: 2px solid var(--neon-blue); box-shadow: 0 0 20px var(--neon-blue), inset 0 0 20px var(--neon-blue);
+            background: repeating-radial-gradient(rgba(0, 243, 255, 0.1) 0%, rgba(0, 243, 255, 0.1) 10%, transparent 10%, transparent 20%);
+        }
+        .radar::before {
+            content: ' '; display: block; position: absolute; width: 100%; height: 100%; border-radius: 50%;
+            border: 1px dashed rgba(0, 243, 255, 0.5); animation: spin 10s linear infinite;
+        }
+        .radar-sweep {
+            position: absolute; top: 0; left: 50%; width: 50%; height: 100%; border-radius: 0 100px 100px 0;
+            background: linear-gradient(90deg, rgba(0, 243, 255, 0.8), transparent);
+            transform-origin: left center; animation: spin 3s linear infinite;
+        }
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+
+        /* Danger Overrides */
+        .danger-panel { border-color: var(--neon-red); box-shadow: 0 0 15px rgba(255, 0, 60, 0.5), inset 0 0 30px rgba(255, 0, 60, 0.3); }
+        .danger-radar { border-color: var(--neon-red); box-shadow: 0 0 20px var(--neon-red), inset 0 0 20px var(--neon-red); background: repeating-radial-gradient(rgba(255, 0, 60, 0.1) 0%, transparent 20%); }
+        .danger-sweep { background: linear-gradient(90deg, rgba(255, 0, 60, 0.8), transparent); }
+
+        /* Boot Screen */
+        #boot-screen { position: fixed; inset: 0; background: black; z-index: 99999; display: flex; flex-direction: column; justify-content: center; align-items: center; }
+        .hidden-app { display: none !important; }
+    </style>
+</head>
+<body>
+
+    <audio id="siren" loop src="https://actions.google.com/sounds/v1/alarms/spaceship_alarm.ogg"></audio>
+
+    <div id="boot-screen">
+        <div class="text-left w-full max-w-2xl px-6">
+            <h1 class="text-4xl orbitron glow-text mb-4">INITIALIZING SYSTEM...</h1>
+            <div id="boot-text" class="text-xs text-[#00f3ff] space-y-1 opacity-80 leading-relaxed"></div>
+            <button id="enter-btn" class="hidden-app mt-8 border border-[#00f3ff] px-8 py-3 orbitron hover:bg-[#00f3ff] hover:text-black transition-all shadow-[0_0_15px_#00f3ff]">INITIATE NEURAL LINK</button>
+        </div>
+    </div>
+
+    <div id="hud-wrapper" class="hidden-app h-screen w-full p-4 flex flex-col relative z-10">
+        
+        <header class="flex justify-between items-end border-b-2 border-[#00f3ff] pb-2 mb-4 px-2 shadow-[0_4px_10px_rgba(0,243,255,0.2)]">
+            <div>
+                <h1 class="text-3xl orbitron glow-text tracking-widest uppercase">LTCE: NEXUS CORE <span class="text-xs text-white opacity-50 ml-2">v9.2.14</span></h1>
+                <p class="text-[10px] tracking-[0.3em] text-[#00f3ff] opacity-80 mt-1">SMART DRAINAGE COMMAND PROTOCOL</p>
+            </div>
+            <div class="text-right">
+                <div class="flex items-center gap-3">
+                    <span id="conn-status" class="text-[10px] orbitron glow-text-green tracking-widest border border-[#00ff66] px-2 py-1 bg-[#00ff66]/10">UPLINK ESTABLISHED</span>
+                    <i class="fa-solid fa-satellite-dish glow-text-green text-xl animate-pulse"></i>
+                </div>
+                <p class="text-[10px] mt-1 opacity-70">LATENCY: 8ms | ENCRYPTION: QUANTUM</p>
+            </div>
+        </header>
+
+        <div class="flex-1 grid grid-cols-12 gap-4 h-full min-h-0">
+
+            <div class="col-span-3 scifi-panel p-4 flex flex-col h-full overflow-hidden">
+                <div class="border-b border-[#00f3ff]/30 pb-2 mb-4 flex justify-between items-center">
+                    <span class="orbitron text-sm glow-text"><i class="fa-solid fa-microchip mr-2"></i>A.I. SUB-ROUTINE</span>
+                    <span class="text-[10px] border border-[#00f3ff] px-1 bg-[#00f3ff]/20 animate-pulse">ACTIVE</span>
+                </div>
+                
+                <div class="flex-1 overflow-y-auto pr-2 space-y-4 text-xs leading-relaxed opacity-90">
+                    <div class="bg-[#00f3ff]/5 p-3 border border-[#00f3ff]/20">
+                        <span class="text-[#ff00ea] orbitron font-bold block mb-1">>> SYSTEM_PURPOSE</span>
+                        Autonomous IoT framework designed to preemptively detect, analyze, and alert authorities of critical choke points within the urban drainage network to prevent catastrophic city flooding.
+                    </div>
+                    
+                    <div class="bg-[#00f3ff]/5 p-3 border border-[#00f3ff]/20">
+                        <span class="text-[#ff00ea] orbitron font-bold block mb-1">>> SENSOR_ARRAY</span>
+                        <ul>
+                            <li>> FLOW_METER: Water velocity tracking.</li>
+                            <li>> CH4_DETECTOR: Methane toxicity levels.</li>
+                            <li>> MOISTURE_NODE: Silt & debris dampness.</li>
+                            <li>> SONAR_PING: Surface distance mapping.</li>
+                        </ul>
+                    </div>
+
+                    <div class="bg-[#00f3ff]/5 p-3 border border-[#00f3ff]/20">
+                        <span class="text-[#ff00ea] orbitron font-bold block mb-1">>> ARCHITECTURE</span>
+                        Hardware: ESP32 Core Microcontroller.<br>
+                        Telemetry: Live Firebase RTDB Stream.<br>
+                        Origin: Electronics & Telecommunication Div.<br>
+                        Location: Lokmanya Tilak College Zone.
+                    </div>
+                </div>
+
+                <div class="mt-4 pt-4 border-t border-[#00f3ff]/30 text-center">
+                    <div class="w-full h-8 border border-[#00f3ff] relative overflow-hidden bg-[#00f3ff]/10">
+                        <div class="absolute top-0 left-0 h-full bg-[#00f3ff]/40 w-[100%]"></div>
+                        <span class="absolute inset-0 flex items-center justify-center text-[10px] orbitron font-bold z-10">SYSTEM INTEGRITY: 100%</span>
+                    </div>
+                </div>
+            </div>
+
+            <div id="center-panel" class="col-span-6 scifi-panel flex flex-col items-center justify-center relative">
+                <div id="danger-text" class="hidden-app absolute top-10 text-4xl orbitron font-bold glow-text-red z-20 w-full text-center tracking-widest">
+                    CRITICAL THREAT LEVEL
+                </div>
+
+                <div id="radar-container" class="radar mb-8 z-10">
+                    <div id="radar-sweep" class="radar-sweep"></div>
+                    <div class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-4 h-4 bg-white rounded-full shadow-[0_0_10px_white]"></div>
+                </div>
+
+                <div class="text-center z-10">
+                    <h2 class="orbitron text-xl opacity-70 tracking-widest">CALCULATED BLOCKAGE RISK</h2>
+                    <div class="flex items-end justify-center mt-2">
+                        <span id="ui-blockage" class="text-8xl orbitron glow-text font-black leading-none">0</span>
+                        <span id="ui-percent" class="text-4xl opacity-50 ml-2 mb-2">%</span>
+                    </div>
+                    <p id="ui-status-text" class="mt-4 border border-[#00f3ff] px-6 py-2 rounded-full text-sm orbitron bg-[#00f3ff]/10 inline-block glow-text">STATUS: NOMINAL</p>
+                </div>
+            </div>
+
+            <div class="col-span-3 flex flex-col gap-4 h-full min-h-0">
+                
+                <div class="scifi-panel p-4 flex-shrink-0">
+                    <div class="border-b border-[#00f3ff]/30 pb-2 mb-4">
+                        <span class="orbitron text-sm glow-text"><i class="fa-solid fa-satellite mr-2"></i>NODE TELEMETRY</span>
+                    </div>
+                    
+                    <div class="space-y-4">
+                        <div class="flex justify-between items-end border-b border-[#00f3ff]/10 pb-1">
+                            <span class="text-xs opacity-70">WATER_FLOW</span>
+                            <span class="orbitron text-xl glow-text"><span id="val-flow">00.0</span> <span class="text-[10px] opacity-50">L/S</span></span>
+                        </div>
+                        <div class="flex justify-between items-end border-b border-[#00f3ff]/10 pb-1">
+                            <span class="text-xs opacity-70">CH4_GAS_LEVEL</span>
+                            <span class="orbitron text-xl glow-text"><span id="val-gas">000</span> <span class="text-[10px] opacity-50">PPM</span></span>
+                        </div>
+                        <div class="flex justify-between items-end border-b border-[#00f3ff]/10 pb-1">
+                            <span class="text-xs opacity-70">SOIL_MOISTURE</span>
+                            <span class="orbitron text-xl glow-text"><span id="val-moisture">00</span> <span class="text-[10px] opacity-50">%</span></span>
+                        </div>
+                        <div class="flex justify-between items-end">
+                            <span class="text-xs opacity-70">SURFACE_DIST</span>
+                            <span class="orbitron text-xl glow-text"><span id="val-distance">00.0</span> <span class="text-[10px] opacity-50">CM</span></span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="scifi-panel p-4 flex-1 flex flex-col overflow-hidden">
+                    <div class="border-b border-[#00f3ff]/30 pb-2 mb-2">
+                        <span class="orbitron text-sm glow-text"><i class="fa-solid fa-terminal mr-2"></i>RAW DATA STREAM</span>
+                    </div>
+                    <div id="matrix-logs" class="flex-1 overflow-y-auto text-[10px] space-y-1 opacity-80" style="scrollbar-width: thin; scrollbar-color: #00f3ff transparent;">
+                        <div class="text-[#00ff66]">Awaiting packet reception...</div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        // --- 1. BOOT SEQUENCE (Hacker Effect) ---
+        const bootLines = [
+            "[+] Establishing secure connection to Deep Space Network...",
+            "[+] Bypassing terrestrial firewalls...",
+            "[+] Connecting to LTCE Mainframe...",
+            "[+] Loading ESP32 Telemetry Drivers...",
+            "[+] Initializing AI Threat Prediction Models...",
+            "[!] FIREBASE RTDB UPLINK DETECTED.",
+            "[+] DECRYPTION COMPLETE. READY FOR NEURAL LINK."
+        ];
+        
+        let lineIndex = 0;
+        const bootTextEl = document.getElementById("boot-text");
+        const enterBtn = document.getElementById("enter-btn");
+
+        function showBootLine() {
+            if (lineIndex < bootLines.length) {
+                const p = document.createElement("p");
+                p.innerText = bootLines[lineIndex];
+                bootTextEl.appendChild(p);
+                lineIndex++;
+                setTimeout(showBootLine, Math.random() * 300 + 100);
+            } else {
+                enterBtn.classList.remove("hidden-app");
+            }
+        }
+        
+        // Start Boot
+        setTimeout(showBootLine, 500);
+
+        enterBtn.addEventListener("click", () => {
+            document.getElementById("boot-screen").classList.add("hidden-app");
+            document.getElementById("hud-wrapper").classList.remove("hidden-app");
+            // Unlock audio context for siren
+            document.getElementById("siren").load();
+        });
+
+        // --- 2. FIREBASE V9 INTEGRATION ---
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyCyvHXBBQ_mQ5hevFGWHozMrM_Nnm_hbGM",
+            databaseURL: "https://smartdrainageblockagesystem-default-rtdb.asia-southeast1.firebasedatabase.app/"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+        const drainRef = ref(db, "drain1");
+        
+        const connStatus = document.getElementById("conn-status");
+
+        // --- 3. LIVE DATA HANDLING ---
+        onValue(drainRef, (snapshot) => {
+            const data = snapshot.val();
+            if (!data) return;
+
+            connStatus.innerText = "UPLINK ACTIVE";
+            connStatus.className = "text-[10px] orbitron glow-text-green tracking-widest border border-[#00ff66] px-2 py-1 bg-[#00ff66]/10";
+
+            // Map data
+            const flow = parseFloat(data.flow) || 0;
+            const moisture = parseInt(data.moisture) || 0;
+            const gas = parseInt(data.gas) || 0;
+            const distance = parseFloat(data.distance) || 0;
+            const blockage = parseInt(data.blockage) || 0;
+
+            // Update UI Numbers (Adding leading zeros for sci-fi feel)
+            document.getElementById('ui-blockage').innerText = blockage;
+            document.getElementById('val-flow').innerText = flow.toFixed(1).padStart(4, '0');
+            document.getElementById('val-moisture').innerText = moisture.toString().padStart(3, '0');
+            document.getElementById('val-gas').innerText = gas.toString().padStart(3, '0');
+            document.getElementById('val-distance').innerText = distance.toFixed(1).padStart(4, '0');
+
+            // Log Data Stream
+            logMatrixData(flow, moisture, gas, distance, blockage);
+
+            // Execute AI Threat Protocol
+            processThreatLevel(blockage);
+
+        }, (error) => {
+            connStatus.innerText = "UPLINK FAILED";
+            connStatus.className = "text-[10px] orbitron glow-text-red tracking-widest border border-[#ff003c] px-2 py-1 bg-[#ff003c]/10";
+            console.error(error);
+        });
+
+        // --- 4. DATA LOG STREAMER (Matrix Style) ---
+        function logMatrixData(f, m, g, d, b) {
+            const logBox = document.getElementById("matrix-logs");
+            const time = new Date().toISOString().split('T')[1].slice(0, -1); // 00:00:00.000
+            
+            // Random Hex code generator for aesthetics
+            const hexId = Math.random().toString(16).substring(2, 6).toUpperCase();
+            
+            const logHTML = `
+                <div class="border-b border-white/5 pb-1">
+                    <span class="text-[#ff00ea]">[${time}]</span> 
+                    <span class="text-white opacity-50">PKT_ID:0x${hexId}</span><br>
+                    <span class="text-[#00f3ff]">|></span> FLW:${f} MST:${m} GAS:${g} DST:${d} 
+                    <span class="${b >= 90 ? 'text-[#ff003c]' : 'text-[#00ff66]'} font-bold">BLK:${b}%</span>
+                </div>`;
+            
+            logBox.insertAdjacentHTML('afterbegin', logHTML);
+            if (logBox.children.length > 50) logBox.lastElementChild.remove();
+        }
+
+        // --- 5. THREAT PROTOCOL (Visuals & Audio) ---
+        function processThreatLevel(blockage) {
+            const centerPanel = document.getElementById("center-panel");
+            const radarContainer = document.getElementById("radar-container");
+            const radarSweep = document.getElementById("radar-sweep");
+            const dangerText = document.getElementById("danger-text");
+            const statusText = document.getElementById("ui-status-text");
+            const uiBlockage = document.getElementById("ui-blockage");
+            const uiPercent = document.getElementById("ui-percent");
+            const siren = document.getElementById("siren");
+
+            if (blockage >= 90) {
+                // RED ALERT (Glitch & Danger Mode)
+                centerPanel.classList.add("danger-panel", "glitch-active");
+                radarContainer.classList.add("danger-radar");
+                radarSweep.classList.add("danger-sweep");
+                dangerText.classList.remove("hidden-app");
+                
+                uiBlockage.className = "text-8xl orbitron glow-text-red font-black leading-none";
+                uiPercent.className = "text-4xl glow-text-red ml-2 mb-2";
+                
+                statusText.innerText = "STATUS: BREACH IMMINENT";
+                statusText.className = "mt-4 border border-[#ff003c] px-6 py-2 rounded-full text-sm orbitron bg-[#ff003c]/20 inline-block glow-text-red animate-pulse";
+
+                // Play Sci-Fi Siren
+                if (siren.paused) {
+                    siren.play().catch(e => console.log("Audio waiting for user interact."));
+                }
+            } 
+            else if (blockage >= 70) {
+                // WARNING MODE (Yellow/Orange tint)
+                resetDangerUI(centerPanel, radarContainer, radarSweep, dangerText, statusText, uiBlockage, uiPercent);
+                uiBlockage.className = "text-8xl orbitron font-black leading-none text-[#ffea00] drop-shadow-[0_0_15px_#ffea00]";
+                statusText.innerText = "STATUS: ELEVATED RISK";
+                statusText.className = "mt-4 border border-[#ffea00] px-6 py-2 rounded-full text-sm orbitron bg-[#ffea00]/10 inline-block text-[#ffea00] drop-shadow-[0_0_10px_#ffea00]";
+                siren.pause();
+            } 
+            else {
+                // NOMINAL MODE (Neon Cyan)
+                resetDangerUI(centerPanel, radarContainer, radarSweep, dangerText, statusText, uiBlockage, uiPercent);
+                uiBlockage.className = "text-8xl orbitron glow-text font-black leading-none";
+                statusText.innerText = "STATUS: NOMINAL";
+                statusText.className = "mt-4 border border-[#00f3ff] px-6 py-2 rounded-full text-sm orbitron bg-[#00f3ff]/10 inline-block glow-text";
+                siren.pause();
+            }
+        }
+
+        function resetDangerUI(panel, radar, sweep, text, status, num, pct) {
+            panel.classList.remove("danger-panel", "glitch-active");
+            radar.classList.remove("danger-radar");
+            sweep.classList.remove("danger-sweep");
+            text.classList.add("hidden-app");
+            num.className = "text-8xl orbitron glow-text font-black leading-none";
+            pct.className = "text-4xl opacity-50 ml-2 mb-2 text-[#00f3ff]";
+        }
+    </script>
+</body>
+</html>
