@@ -313,8 +313,13 @@
             logActivity("API: WhatsApp Alert successfully dispatched.");
         };
 
+        // *************** UPDATED EMAILJS SECTION *************** //
         window.sendEmailAlert = function(blockage, gas) {
+            // Mailing list with all team emails
+            const mailingList = "dubeyneha8928@gmail.com, mamtaguptaa2005@gmail.com, daganivenketesh8@gmail.com, sjha68298@gmail.com";
+
             const templateParams = {
+                to_email: mailingList, // Added to_email for EmailJS template
                 location: "LTCE-01, Kurla Zone",
                 blockage: blockage + "%",
                 gas: gas + " PPM",
@@ -323,9 +328,10 @@
             
             // Sending with actual keys provided by user
             emailjs.send('service_q7nfhac', 'template_eiy1jha', templateParams)
-              .then(() => logActivity("API: Real Emergency Email sent via EmailJS."))
+              .then(() => logActivity("API: Real Emergency Email sent via EmailJS to all team members."))
               .catch(err => console.error("Email Error:", err));
         };
+        // ******************************************************* //
 
         // Cooldown Tracker
         let lastAlertTime = 0;
