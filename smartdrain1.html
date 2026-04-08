@@ -216,204 +216,178 @@
         </button>
     </div>
 
-    <script type="module">
-        // --- 1. VIEW ROLE TOGGLE (SIH Feature) ---
-        window.changeRole = function(role) {
-            document.body.className = `role-${role} flex flex-col min-h-screen`;
-        };
+<script type="module">
 
-        // --- 2. CHART.JS INITIALIZATION ---
-        const ctx = document.getElementById('blockageChart').getContext('2d');
-        const chartData = {
-            labels: [],
-            datasets: [{
-                label: 'Blockage Risk (%)',
-                data: [],
-                borderColor: '#2563eb', // Blue-600
-                backgroundColor: 'rgba(37, 99, 235, 0.1)',
-                borderWidth: 2,
-                fill: true,
-                tension: 0.4,
-                pointRadius: 2,
-                pointBackgroundColor: '#2563eb'
-            }]
-        };
-        const blockageChart = new Chart(ctx, {
-            type: 'line',
-            data: chartData,
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                scales: {
-                    y: { beginAtZero: true, max: 100 },
-                    x: { display: true }
-                },
-                plugins: { legend: { display: false } },
-                animation: { duration: 0 }
-            }
-        });
+// -------- FIREBASE --------
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 
-        // --- 3. FIREBASE INTEGRATION (Real-time) ---
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+const firebaseConfig = {
+    apiKey: "AIzaSyCyvHXBBQ_mQ5hevFGWHozMrM_Nnm_hbGM",
+    databaseURL: "https://smartdrainageblockagesystem-default-rtdb.asia-southeast1.firebasedatabase.app/"
+};
 
-        // Firebase Config
-        const firebaseConfig = {
-            apiKey: "AIzaSyCyvHXBBQ_mQ5hevFGWHozMrM_Nnm_hbGM",
-            databaseURL: "https://smartdrainageblockagesystem-default-rtdb.asia-southeast1.firebasedatabase.app/"
-        };
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
+const drainRef = ref(db, "drain1");
 
-        const app = initializeApp(firebaseConfig);
-        const db = getDatabase(app);
-        const drainRef = ref(db, "drain1");
+// -------- VARIABLES --------
+let currentBlockage = 0;
+let gasValue = 0;
 
-        // UI Elements
-        const connStatus = document.getElementById('connection-status');
-        let currentBlockage = 0; // Global variable for chatbot
+// -------- FETCH DATA --------
+onValue(drainRef, (snapshot) => {
 
-        // Fetch Data
-        onValue(drainRef, (snapshot) => {
-            const data = snapshot.val();
-            if (!data) return;
+    const data = snapshot.val();
+    if (!data) return;
 
-            // Connection Active UI
-            connStatus.innerHTML = `<span class="relative flex h-3 w-3"><span class="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span></span> System Online`;
-            connStatus.className = "flex items-center gap-2 px-4 py-2 bg-emerald-50 rounded-full border border-emerald-200 text-sm font-semibold text-emerald-700";
-            document.getElementById('last-ping').innerText = new Date().toLocaleTimeString();
+    const flow = parseFloat(data.flow) || 0;
+    const moisture = parseInt(data.moisture) || 0;
+    const gas = parseInt(data.gas) || 0;
+    const distance = parseFloat(data.distance) || 0;
+    const blockage = parseInt(data.blockage) || 0;
 
-            // Extract values
-            const flow = parseFloat(data.flow) || 0;
-            const moisture = parseInt(data.moisture) || 0;
-            const gas = parseInt(data.gas) || 0;
-            const distance = parseFloat(data.distance) || 0;
-            const blockage = parseInt(data.blockage) || 0;
-            currentBlockage = blockage; // update global
+    currentBlockage = blockage;
+    gasValue = gas;
 
-            // Update Metric Cards
-            document.getElementById('val-flow').innerText = flow.toFixed(1);
-            document.getElementById('val-moisture').innerText = moisture;
-            document.getElementById('val-gas').innerText = gas;
-            document.getElementById('val-distance').innerText = distance.toFixed(1);
-            document.getElementById('main-blockage').innerText = blockage;
+    // UPDATE UI
+    document.getElementById('val-flow').innerText = flow.toFixed(1);
+    document.getElementById('val-moisture').innerText = moisture;
+    document.getElementById('val-gas').innerText = gas;
+    document.getElementById('val-distance').innerText = distance.toFixed(1);
+    document.getElementById('main-blockage').innerText = blockage;
 
-            // Update Chart
-            const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second:'2-digit' });
-            chartData.labels.push(timeStr);
-            chartData.datasets[0].data.push(blockage);
-            if (chartData.labels.length > 15) {
-                chartData.labels.shift();
-                chartData.datasets[0].data.shift();
-            }
-            blockageChart.update();
+    // GAS VISUAL ALERT
+    if (gas > 50) {
+        document.getElementById('val-gas').classList.add("blinking-red");
+    } else {
+        document.getElementById('val-gas').classList.remove("blinking-red");
+    }
 
-            // Handle Alert States
-            updateAlertBanner(blockage);
+    // ALERT SYSTEM
+    updateAlertBanner(blockage, gas);
 
-            // Log Activity
-            logActivity(`Data Sync: Flow=${flow.toFixed(1)}L/s, Risk=${blockage}%`);
+    // LOG
+    logActivity(`Flow=${flow}, Blockage=${blockage}%, Gas=${gas}`);
 
-        }, (error) => {
-            connStatus.innerHTML = `<i class="fa-solid fa-triangle-exclamation"></i> Offline`;
-            connStatus.className = "flex items-center gap-2 px-4 py-2 bg-red-50 rounded-full border border-red-200 text-sm font-semibold text-red-700";
-            console.error("Firebase Error:", error);
-        });
+    // 🔥 WHATSAPP ALERT
+    if (blockage >= 90 || gas > 50) {
 
-        // --- 4. ALERT LOGIC ---
-        function updateAlertBanner(blockage) {
-            const banner = document.getElementById('system-alert');
-            const icon = document.getElementById('alert-icon');
-            const title = document.getElementById('alert-title');
-            const desc = document.getElementById('alert-desc');
+        const msg = `🚨 ALERT!
+Blockage: ${blockage}%
+Gas: ${gas} PPM
+Location: LTCE-01`;
 
-            if (blockage >= 90) {
-                banner.className = "bg-red-50 border-l-4 border-red-600 p-4 rounded-r-md card-shadow mb-8 flex justify-between items-center";
-                icon.className = "fa-solid fa-triangle-exclamation text-red-600 text-3xl mr-4 blinking-red";
-                title.className = "text-red-800 font-bold text-lg uppercase";
-                title.innerText = "CRITICAL EMERGENCY ALERT";
-                desc.className = "text-red-700 text-sm font-semibold";
-                desc.innerText = "Blockage exceeded 90%. Flooding imminent. Field response team dispatched to LTCE-01.";
-            } else if (blockage >= 70) {
-                banner.className = "bg-yellow-50 border-l-4 border-yellow-500 p-4 rounded-r-md card-shadow mb-8 flex justify-between items-center";
-                icon.className = "fa-solid fa-bell text-yellow-600 text-2xl mr-4";
-                title.className = "text-yellow-800 font-bold text-lg";
-                title.innerText = "Warning: Elevated Risk";
-                desc.className = "text-yellow-700 text-sm";
-                desc.innerText = "Blockage levels are high. Continuous monitoring advised.";
-            } else {
-                banner.className = "bg-emerald-50 border-l-4 border-emerald-500 p-4 rounded-r-md card-shadow mb-8 flex justify-between items-center";
-                icon.className = "fa-solid fa-circle-check text-emerald-500 text-2xl mr-4";
-                title.className = "text-emerald-800 font-bold text-lg";
-                title.innerText = "System Status: Normal";
-                desc.className = "text-emerald-600 text-sm";
-                desc.innerText = "All drainage nodes in Mumbai region are operating smoothly.";
-            }
+        const url = `https://wa.me/916201919906?text=${encodeURIComponent(msg)}`;
+
+        window.open(url, "_blank");
+    }
+
+    // 🔮 PREDICTION
+    if (blockage > 70 && blockage < 90) {
+        logActivity("⚠️ Prediction: Blockage may become critical soon");
+    }
+
+    // 🔊 VOICE ALERT
+    if (blockage >= 90) {
+        speechSynthesis.speak(
+            new SpeechSynthesisUtterance("Warning. Drain blockage is critical")
+        );
+    }
+
+});
+
+// -------- ALERT FUNCTION --------
+function updateAlertBanner(blockage, gas) {
+
+    const title = document.getElementById('alert-title');
+    const desc = document.getElementById('alert-desc');
+
+    if (gas > 50) {
+        title.innerText = "TOXIC GAS ALERT ⚠️";
+        desc.innerText = `Gas level ${gas} PPM. Dangerous!`;
+        return;
+    }
+
+    if (blockage >= 90) {
+        title.innerText = "CRITICAL BLOCKAGE ALERT";
+        desc.innerText = "Flood risk imminent!";
+    } 
+    else if (blockage >= 70) {
+        title.innerText = "HIGH RISK WARNING";
+        desc.innerText = "Blockage increasing.";
+    } 
+    else {
+        title.innerText = "SYSTEM NORMAL";
+        desc.innerText = "All conditions stable.";
+    }
+}
+
+// -------- LOG SYSTEM --------
+function logActivity(msg) {
+    const logBox = document.getElementById('activity-logs');
+    const time = new Date().toLocaleTimeString();
+
+    const logHTML = `<div class="bg-slate-50 p-2 rounded border border-slate-100">
+    <span class="text-blue-600 font-bold">[${time}]</span> ${msg}</div>`;
+
+    logBox.insertAdjacentHTML('afterbegin', logHTML);
+}
+
+// -------- CHATBOT --------
+window.sendChatMsg = function(msg) {
+
+    appendChat("user", msg);
+
+    setTimeout(() => {
+
+        if(msg.includes('risk')) {
+
+            let reply = `Current blockage is ${currentBlockage}%. `;
+
+            if(currentBlockage >= 90)
+                reply += "🚨 Critical!";
+            else if(currentBlockage >= 70)
+                reply += "⚠️ High risk.";
+            else
+                reply += "✅ Safe.";
+
+            appendChat("bot", reply);
         }
 
-        // --- 5. SYSTEM LOGS ---
-        function logActivity(msg) {
-            const logBox = document.getElementById('activity-logs');
-            const time = new Date().toLocaleTimeString();
-            const logHTML = `<div class="bg-slate-50 p-2 rounded border border-slate-100"><span class="text-blue-600 font-bold">[${time}]</span> <span class="text-slate-700">${msg}</span></div>`;
-            logBox.insertAdjacentHTML('afterbegin', logHTML);
-            if (logBox.children.length > 20) logBox.lastElementChild.remove();
+        else if(msg.includes('gas')) {
+
+            if(gasValue > 50)
+                appendChat("bot", `🚨 Gas ${gasValue} PPM. Dangerous!`);
+            else
+                appendChat("bot", `Gas ${gasValue} PPM. Normal.`);
         }
 
-        // --- 6. CHATBOT LOGIC ---
-        window.toggleChat = function() {
-            const chatBox = document.getElementById('chat-window');
-            if(chatBox.classList.contains('hidden')) {
-                chatBox.classList.remove('hidden');
-                chatBox.classList.add('flex');
-            } else {
-                chatBox.classList.add('hidden');
-                chatBox.classList.remove('flex');
-            }
-        };
+        else if(msg.includes('predict')) {
 
-        window.sendChatMsg = function(msg) {
-            appendChat("user", msg);
-            document.getElementById('chat-input').value = ""; // clear input
-            
-            // Bot Response Delay simulation
-            setTimeout(() => {
-                if(msg.includes('project')) {
-                    appendChat("bot", "This is an IoT & AI based system built by Lokmanya Tilak College students for the Smart India Hackathon. It predicts drainage blockages to prevent urban flooding.");
-                } else if(msg.includes('Report')) {
-                    appendChat("bot", "To report a manual blockage, please provide your Pincode or call the BMC Disaster Management Helpline at 1916.");
-                } else if(msg.includes('risk')) {
-                    appendChat("bot", `Currently, the live blockage risk at node LTCE-01 is ${currentBlockage}%. ${currentBlockage >= 90 ? 'Please avoid the area.' : 'Status is under control.'}`);
-                } else {
-                    appendChat("bot", "I have logged your query. An official will review it. For emergencies, call 1073.");
-                }
-            }, 600);
-        };
-
-        window.handleManualChat = function() {
-            const input = document.getElementById('chat-input').value.trim();
-            if(input !== "") sendChatMsg(input);
-        };
-
-        // Trigger send on Enter key
-        document.getElementById('chat-input').addEventListener("keypress", function(event) {
-            if (event.key === "Enter") {
-                event.preventDefault();
-                handleManualChat();
-            }
-        });
-
-        function appendChat(sender, text) {
-            const chatBox = document.getElementById('chat-messages');
-            // Remove quick replies if they exist
-            const quickReplies = chatBox.querySelector('.gap-2');
-            if(quickReplies) quickReplies.remove();
-
-            const isUser = sender === "user";
-            const msgClass = isUser ? "bg-blue-600 text-white self-end rounded-tr-none ml-auto" : "bg-white text-slate-700 border border-slate-200 rounded-tl-none";
-            
-            const msgHTML = `<div class="p-3 rounded-lg shadow-sm mb-3 max-w-[85%] ${msgClass}">${text}</div>`;
-            chatBox.insertAdjacentHTML('beforeend', msgHTML);
-            chatBox.scrollTop = chatBox.scrollHeight;
+            if(currentBlockage > 70)
+                appendChat("bot", "🔮 Blockage may increase soon.");
+            else
+                appendChat("bot", "System stable.");
         }
-    </script>
+
+        else {
+            appendChat("bot", "System monitoring active.");
+        }
+
+    }, 500);
+};
+
+// -------- CHAT UI --------
+function appendChat(sender, text) {
+    const chatBox = document.getElementById('chat-messages');
+    const isUser = sender === "user";
+
+    const msgHTML = `<div class="p-3 rounded-lg mb-2 ${isUser ? 'bg-blue-600 text-white ml-auto' : 'bg-white border'}">${text}</div>`;
+    chatBox.insertAdjacentHTML('beforeend', msgHTML);
+    chatBox.scrollTop = chatBox.scrollHeight;
+}
+
+</script>
 </body>
 </html>
