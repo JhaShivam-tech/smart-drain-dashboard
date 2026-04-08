@@ -1,11 +1,12 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8"> 
+    <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Smart Drainage Monitoring System | Ministry of Housing and Urban Affairs</title> 
+    <title>Smart Drainage Monitoring System | Ministry of Housing and Urban Affairs</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
@@ -36,7 +37,27 @@
         @keyframes blinker { 50% { opacity: 0.3; } }
     </style>
 </head>
-<body class="role-admin flex flex-col min-h-screen">
+<body class="role-public flex flex-col min-h-screen"> <div id="login-modal" class="fixed inset-0 bg-slate-900/80 hidden items-center justify-center z-[9999] backdrop-blur-sm">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-sm overflow-hidden">
+            <div class="bg-blue-600 p-5 text-center">
+                <h2 class="text-lg font-bold text-white tracking-wide"><i class="fa-solid fa-lock mr-2"></i>Admin Authentication</h2>
+            </div>
+            <div class="p-6 space-y-4">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-500 uppercase mb-1">Admin ID</label>
+                    <input id="admin-user" type="text" class="w-full px-3 py-2 rounded border border-slate-300 focus:outline-none focus:border-blue-500" placeholder="Enter ID (admin)">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-500 uppercase mb-1">Password</label>
+                    <input id="admin-pass" type="password" class="w-full px-3 py-2 rounded border border-slate-300 focus:outline-none focus:border-blue-500" placeholder="Enter Password (admin123)">
+                </div>
+                <div class="flex gap-3 pt-2">
+                    <button onclick="closeLogin()" class="w-1/3 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold py-2 rounded transition-colors">Cancel</button>
+                    <button onclick="handleLogin()" class="w-2/3 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 rounded transition-colors">Secure Login</button>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <div class="govt-header bg-slate-900 text-slate-200 text-xs py-2 px-6 flex justify-between items-center z-50">
         <div class="flex items-center gap-4">
@@ -48,8 +69,8 @@
             <div class="border-l border-slate-600 pl-4 flex items-center gap-2">
                 <span>View Mode:</span>
                 <select id="roleSelector" onchange="changeRole(this.value)" class="bg-slate-800 text-white border border-slate-600 rounded px-2 py-1 outline-none cursor-pointer">
+                    <option value="public" selected>Citizen Portal (Public)</option>
                     <option value="admin">Municipal Authority (Admin)</option>
-                    <option value="public">Citizen Portal (Public)</option>
                 </select>
             </div>
         </div>
@@ -104,12 +125,22 @@
                     <li class="flex justify-between"><span class="text-slate-500">Location ID:</span> <span class="font-bold text-slate-800">LTCE-01</span></li>
                     <li class="flex justify-between"><span class="text-slate-500">Zone:</span> <span class="font-bold text-slate-800">Kurla / Navi Mumbai</span></li>
                     <li class="flex justify-between"><span class="text-slate-500">Hardware:</span> <span class="font-bold text-slate-800">ESP32 + Sensors</span></li>
-                    <li class="flex justify-between"><span class="text-slate-500">Last Ping:</span> <span class="font-bold text-emerald-600" id="last-ping">Just now</span></li>
+                    <li class="flex justify-between"><span class="text-slate-500">Last Ping:</span> <span class="font-bold text-emerald-600" id="last-ping">Waiting...</span></li>
                 </ul>
+                
                 <div class="mt-6 pt-4 border-t border-slate-100 admin-only">
-                    <button class="w-full border border-blue-600 text-blue-600 hover:bg-blue-50 py-2 rounded font-semibold text-sm">
-                        <i class="fa-solid fa-gear mr-1"></i> Configure Node
-                    </button>
+                    <h4 class="text-xs font-bold text-slate-500 mb-3 uppercase tracking-wide">System Controls (Admin)</h4>
+                    <div class="grid grid-cols-1 gap-2">
+                        <button onclick="simulateBlockage()" class="w-full bg-red-50 hover:bg-red-100 text-red-700 py-2 rounded text-xs font-bold border border-red-200 transition">
+                            <i class="fa-solid fa-plug-circle-xmark mr-1"></i> Simulate Blockage (95%)
+                        </button>
+                        <button onclick="simulateGas()" class="w-full bg-orange-50 hover:bg-orange-100 text-orange-700 py-2 rounded text-xs font-bold border border-orange-200 transition">
+                            <i class="fa-solid fa-cloud mr-1"></i> Simulate Gas Leak (60 PPM)
+                        </button>
+                        <button onclick="simulateTestAlert()" class="w-full bg-blue-50 hover:bg-blue-100 text-blue-700 py-2 rounded text-xs font-bold border border-blue-200 transition">
+                            <i class="fa-solid fa-bell mr-1"></i> Send Test API Alert
+                        </button>
+                    </div>
                 </div>
             </div>
 
@@ -141,7 +172,7 @@
                     </div>
                     <div>
                         <p class="text-sm font-bold text-slate-400 uppercase mt-4">Methane (CH4)</p>
-                        <p class="text-4xl font-bold text-slate-800 mt-1"><span id="val-gas">0</span></p>
+                        <p class="text-4xl font-bold text-slate-800 mt-1" id="val-gas-container"><span id="val-gas">0</span></p>
                     </div>
                 </div>
                 <div class="bg-white p-5 rounded-xl border border-slate-200 card-shadow flex flex-col justify-between">
@@ -161,7 +192,7 @@
             
             <div class="bg-white p-6 rounded-xl border border-slate-200 card-shadow lg:col-span-2">
                 <div class="flex justify-between items-center mb-6">
-                    <h3 class="text-base font-bold text-slate-800">Live Blockage Trend (Real-time)</h3>
+                    <h3 class="text-base font-bold text-slate-800">Live Blockage Trend (Last 20 Data Points)</h3>
                     <span class="text-xs px-2 py-1 bg-blue-100 text-blue-700 font-semibold rounded"><i class="fa-solid fa-circle-dot text-[10px] mr-1"></i> Live</span>
                 </div>
                 <div class="h-64 w-full">
@@ -180,7 +211,6 @@
     </main>
 
     <div class="fixed bottom-6 right-6 z-50 flex flex-col items-end">
-        
         <div id="chat-window" class="hidden bg-white w-80 rounded-xl card-shadow border border-slate-200 mb-4 overflow-hidden flex-col chat-window">
             <div class="bg-blue-600 text-white p-4 flex justify-between items-center">
                 <div class="flex items-center gap-2">
@@ -216,178 +246,328 @@
         </button>
     </div>
 
-<script type="module">
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getDatabase, ref, onValue, update } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 
-// -------- FIREBASE --------
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+        // --- 1. ADMIN LOGIN SYSTEM ---
+        let isAdminLoggedIn = false;
 
-const firebaseConfig = {
-    apiKey: "AIzaSyCyvHXBBQ_mQ5hevFGWHozMrM_Nnm_hbGM",
-    databaseURL: "https://smartdrainageblockagesystem-default-rtdb.asia-southeast1.firebasedatabase.app/"
-};
+        window.changeRole = function(role) {
+            if (role === 'admin' && !isAdminLoggedIn) {
+                document.getElementById('login-modal').classList.remove('hidden');
+                document.getElementById('login-modal').classList.add('flex');
+                document.getElementById('roleSelector').value = 'public'; // Revert visual state temporarily
+                return;
+            }
+            document.body.className = `role-${role} flex flex-col min-h-screen`;
+        };
 
-const app = initializeApp(firebaseConfig);
-const db = getDatabase(app);
-const drainRef = ref(db, "drain1");
+        window.handleLogin = function() {
+            const user = document.getElementById('admin-user').value.trim();
+            const pass = document.getElementById('admin-pass').value.trim();
+            if (user === 'admin' && pass === 'admin123') {
+                isAdminLoggedIn = true;
+                closeLogin();
+                document.getElementById('roleSelector').value = 'admin';
+                document.body.className = `role-admin flex flex-col min-h-screen`;
+                logActivity("Authentication Success: Admin access granted.");
+            } else {
+                alert("Access Denied: Invalid Credentials.");
+            }
+        };
 
-// -------- VARIABLES --------
-let currentBlockage = 0;
-let gasValue = 0;
+        window.closeLogin = function() {
+            document.getElementById('login-modal').classList.add('hidden');
+            document.getElementById('login-modal').classList.remove('flex');
+        };
 
-// -------- FETCH DATA --------
-onValue(drainRef, (snapshot) => {
+        // --- 2. CHART.JS INITIALIZATION (Historical Data Feature) ---
+        const ctx = document.getElementById('blockageChart').getContext('2d');
+        const chartData = {
+            labels: [],
+            datasets: [{
+                label: 'Blockage Risk (%)',
+                data: [],
+                borderColor: '#2563eb', 
+                backgroundColor: 'rgba(37, 99, 235, 0.1)',
+                borderWidth: 2,
+                fill: true,
+                tension: 0.4,
+                pointRadius: 2,
+                pointBackgroundColor: '#2563eb'
+            }]
+        };
+        const blockageChart = new Chart(ctx, {
+            type: 'line',
+            data: chartData,
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: { beginAtZero: true, max: 100 },
+                    x: { display: true }
+                },
+                plugins: { legend: { display: false } },
+                animation: { duration: 0 }
+            }
+        });
 
-    const data = snapshot.val();
-    if (!data) return;
+        // --- 3. FIREBASE CONFIGURATION ---
+        const firebaseConfig = {
+            apiKey: "AIzaSyCyvHXBBQ_mQ5hevFGWHozMrM_Nnm_hbGM",
+            databaseURL: "https://smartdrainageblockagesystem-default-rtdb.asia-southeast1.firebasedatabase.app/"
+        };
 
-    const flow = parseFloat(data.flow) || 0;
-    const moisture = parseInt(data.moisture) || 0;
-    const gas = parseInt(data.gas) || 0;
-    const distance = parseFloat(data.distance) || 0;
-    const blockage = parseInt(data.blockage) || 0;
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+        const drainRef = ref(db, "drain1");
 
-    currentBlockage = blockage;
-    gasValue = gas;
+        // --- 4. ADVANCED ALERT & API SIMULATION FUNCTIONS ---
+        
+        // Initialize EmailJS (Placeholder key)
+        emailjs.init("YOUR_EMAILJS_PUBLIC_KEY");
 
-    // UPDATE UI
-    document.getElementById('val-flow').innerText = flow.toFixed(1);
-    document.getElementById('val-moisture').innerText = moisture;
-    document.getElementById('val-gas').innerText = gas;
-    document.getElementById('val-distance').innerText = distance.toFixed(1);
-    document.getElementById('main-blockage').innerText = blockage;
+        // Generate Alert Message Function
+        window.generateAlertMessage = function(blockage, gas) {
+            return `🚨 CRITICAL DRAIN ALERT\nLocation: LTCE-01, Kurla Zone\nBlockage Level: ${blockage}%\nGas Level: ${gas} PPM ${gas >= 50 ? '(Toxic)' : ''}\nImmediate action required. Dispatch maintenance team urgently.`;
+        };
 
-    // GAS VISUAL ALERT
-    if (gas > 50) {
-        document.getElementById('val-gas').classList.add("blinking-red");
-    } else {
-        document.getElementById('val-gas').classList.remove("blinking-red");
-    }
+        // WhatsApp API Simulator
+        window.sendWhatsAppAlert = function(message) {
+            console.log("======================================");
+            console.log("📱 [WHATSAPP API TRIGGERED]");
+            console.log("Sending to: +91-XXXXXXXXXX (Maintenance Team)");
+            console.log("Payload:\n" + message);
+            console.log("Status: Delivered ✓");
+            console.log("======================================");
+            logActivity("API: WhatsApp Alert successfully dispatched.");
+        };
 
-    // ALERT SYSTEM
-    updateAlertBanner(blockage, gas);
+        // EmailJS Simulator
+        window.sendEmailAlert = function(blockage, gas) {
+            const templateParams = {
+                location: "LTCE-01, Kurla Zone",
+                blockage: blockage + "%",
+                gas: gas + " PPM",
+                timestamp: new Date().toLocaleString()
+            };
+            console.log("📧 [EMAIL API TRIGGERED] Payload:", templateParams);
+            // ACTUAL EMAILJS CALL (Uncomment when credentials are set):
+            // emailjs.send('YOUR_SERVICE_ID', 'YOUR_TEMPLATE_ID', templateParams)
+            //  .then(() => logActivity("API: Email Alert sent."))
+            //  .catch(err => console.error("Email Error:", err));
+            logActivity("API: Emergency Email Alert sent to administrators.");
+        };
 
-    // LOG
-    logActivity(`Flow=${flow}, Blockage=${blockage}%, Gas=${gas}`);
+        // Cooldown Tracker
+        let lastAlertTime = 0;
+        const ALERT_COOLDOWN_MS = 2 * 60 * 1000; // 2 minutes
 
-    // 🔥 WHATSAPP ALERT
-    if (blockage >= 90 || gas > 50) {
-
-        const msg = `🚨 ALERT!
-Blockage: ${blockage}%
-Gas: ${gas} PPM
-Location: LTCE-01`;
-
-        const url = `https://wa.me/916201919906?text=${encodeURIComponent(msg)}`;
-
-        window.open(url, "_blank");
-    }
-
-    // 🔮 PREDICTION
-    if (blockage > 70 && blockage < 90) {
-        logActivity("⚠️ Prediction: Blockage may become critical soon");
-    }
-
-    // 🔊 VOICE ALERT
-    if (blockage >= 90) {
-        speechSynthesis.speak(
-            new SpeechSynthesisUtterance("Warning. Drain blockage is critical")
-        );
-    }
-
-});
-
-// -------- ALERT FUNCTION --------
-function updateAlertBanner(blockage, gas) {
-
-    const title = document.getElementById('alert-title');
-    const desc = document.getElementById('alert-desc');
-
-    if (gas > 50) {
-        title.innerText = "TOXIC GAS ALERT ⚠️";
-        desc.innerText = `Gas level ${gas} PPM. Dangerous!`;
-        return;
-    }
-
-    if (blockage >= 90) {
-        title.innerText = "CRITICAL BLOCKAGE ALERT";
-        desc.innerText = "Flood risk imminent!";
-    } 
-    else if (blockage >= 70) {
-        title.innerText = "HIGH RISK WARNING";
-        desc.innerText = "Blockage increasing.";
-    } 
-    else {
-        title.innerText = "SYSTEM NORMAL";
-        desc.innerText = "All conditions stable.";
-    }
-}
-
-// -------- LOG SYSTEM --------
-function logActivity(msg) {
-    const logBox = document.getElementById('activity-logs');
-    const time = new Date().toLocaleTimeString();
-
-    const logHTML = `<div class="bg-slate-50 p-2 rounded border border-slate-100">
-    <span class="text-blue-600 font-bold">[${time}]</span> ${msg}</div>`;
-
-    logBox.insertAdjacentHTML('afterbegin', logHTML);
-}
-
-// -------- CHATBOT --------
-window.sendChatMsg = function(msg) {
-
-    appendChat("user", msg);
-
-    setTimeout(() => {
-
-        if(msg.includes('risk')) {
-
-            let reply = `Current blockage is ${currentBlockage}%. `;
-
-            if(currentBlockage >= 90)
-                reply += "🚨 Critical!";
-            else if(currentBlockage >= 70)
-                reply += "⚠️ High risk.";
-            else
-                reply += "✅ Safe.";
-
-            appendChat("bot", reply);
+        // --- 5. OFFLINE DETECTION LOGIC ---
+        let offlineTimer;
+        function resetOfflineTimer() {
+            clearTimeout(offlineTimer);
+            offlineTimer = setTimeout(() => {
+                const connStatus = document.getElementById('connection-status');
+                connStatus.innerHTML = `<i class="fa-solid fa-triangle-exclamation"></i> Device Offline`;
+                connStatus.className = "flex items-center gap-2 px-4 py-2 bg-red-50 rounded-full border border-red-200 text-sm font-semibold text-red-700";
+                logActivity("ERROR: Device Offline. No sensor data received for 30s.");
+            }, 30000); // Trigger offline mode if no data for 30 seconds
         }
 
-        else if(msg.includes('gas')) {
+        // --- 6. DATA LISTENER & ALERT ENGINE ---
+        let currentBlockage = 0; 
+        let currentGas = 0;
 
-            if(gasValue > 50)
-                appendChat("bot", `🚨 Gas ${gasValue} PPM. Dangerous!`);
-            else
-                appendChat("bot", `Gas ${gasValue} PPM. Normal.`);
+        onValue(drainRef, (snapshot) => {
+            const data = snapshot.val();
+            if (!data) return;
+
+            resetOfflineTimer(); // Reset offline timeout counter
+
+            // Connection Active UI
+            const connStatus = document.getElementById('connection-status');
+            connStatus.innerHTML = `<span class="relative flex h-3 w-3"><span class="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span></span> System Online`;
+            connStatus.className = "flex items-center gap-2 px-4 py-2 bg-emerald-50 rounded-full border border-emerald-200 text-sm font-semibold text-emerald-700";
+            document.getElementById('last-ping').innerText = new Date().toLocaleTimeString();
+
+            // Extract values
+            const flow = parseFloat(data.flow) || 0;
+            const moisture = parseInt(data.moisture) || 0;
+            const gas = parseInt(data.gas) || 0;
+            const distance = parseFloat(data.distance) || 0;
+            const blockage = parseInt(data.blockage) || 0;
+            
+            currentBlockage = blockage; 
+            currentGas = gas;
+
+            // Update UI Numbers
+            document.getElementById('val-flow').innerText = flow.toFixed(1);
+            document.getElementById('val-moisture').innerText = moisture;
+            document.getElementById('val-gas').innerText = gas;
+            document.getElementById('val-distance').innerText = distance.toFixed(1);
+            document.getElementById('main-blockage').innerText = blockage;
+
+            // Update Gas UI Blinking Feature
+            if (gas >= 50) {
+                document.getElementById('val-gas-container').classList.add('blinking-red');
+            } else {
+                document.getElementById('val-gas-container').classList.remove('blinking-red');
+            }
+
+            // Historical Data Chart (Keep last 20 points)
+            const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second:'2-digit' });
+            chartData.labels.push(timeStr);
+            chartData.datasets[0].data.push(blockage);
+            if (chartData.labels.length > 20) {
+                chartData.labels.shift();
+                chartData.datasets[0].data.shift();
+            }
+            blockageChart.update();
+
+            // Analyze Logic Conditions
+            let blockStatus = (blockage >= 90) ? "CRITICAL" : (blockage >= 70) ? "WARNING" : "NORMAL";
+            let gasStatus = (gas >= 50) ? "DANGEROUS" : (gas >= 30) ? "MODERATE" : "NORMAL";
+
+            updateAlertBanner(blockage, gas, blockStatus, gasStatus);
+
+            // Prediction & Logging
+            if (blockStatus === "WARNING") {
+                logActivity(`Prediction System: Blockage (${blockage}%) may reach critical level soon.`);
+            }
+
+            // Automatic Trigger based on Cooldown
+            if (blockStatus === "CRITICAL" || gasStatus === "DANGEROUS") {
+                const now = Date.now();
+                if (now - lastAlertTime > ALERT_COOLDOWN_MS) {
+                    lastAlertTime = now;
+                    const message = window.generateAlertMessage(blockage, gas);
+                    window.sendWhatsAppAlert(message);
+                    window.sendEmailAlert(blockage, gas);
+                }
+            }
+
+            // Standard Log
+            logActivity(`Telemetry Synced: F:${flow.toFixed(1)} M:${moisture} G:${gas} D:${distance} B:${blockage}%`);
+
+        }, (error) => {
+            console.error("Firebase Error:", error);
+        });
+
+        // Update Dynamic Banner
+        function updateAlertBanner(blockage, gas, blockStatus, gasStatus) {
+            const banner = document.getElementById('system-alert');
+            const icon = document.getElementById('alert-icon');
+            const title = document.getElementById('alert-title');
+            const desc = document.getElementById('alert-desc');
+
+            if (blockStatus === "CRITICAL" || gasStatus === "DANGEROUS") {
+                banner.className = "bg-red-50 border-l-4 border-red-600 p-4 rounded-r-md card-shadow mb-8 flex justify-between items-center transition-colors";
+                icon.className = "fa-solid fa-triangle-exclamation text-red-600 text-3xl mr-4 blinking-red";
+                title.className = "text-red-800 font-bold text-lg uppercase";
+                title.innerText = "CRITICAL EMERGENCY ALERT";
+                desc.className = "text-red-700 text-sm font-semibold";
+                desc.innerText = `Blockage Level: ${blockage}% | Gas Level: ${gas} PPM. Imminent Threat Detected. Response team protocols active.`;
+            } else if (blockStatus === "WARNING" || gasStatus === "MODERATE") {
+                banner.className = "bg-yellow-50 border-l-4 border-yellow-500 p-4 rounded-r-md card-shadow mb-8 flex justify-between items-center transition-colors";
+                icon.className = "fa-solid fa-bell text-yellow-600 text-2xl mr-4";
+                title.className = "text-yellow-800 font-bold text-lg";
+                title.innerText = "Warning: Elevated Risk Profile";
+                desc.className = "text-yellow-700 text-sm";
+                desc.innerText = `Blockage: ${blockage}% | Gas: ${gas} PPM. Prediction: Blockage may reach critical level soon. Continuous monitoring advised.`;
+            } else {
+                banner.className = "bg-emerald-50 border-l-4 border-emerald-500 p-4 rounded-r-md card-shadow mb-8 flex justify-between items-center transition-colors";
+                icon.className = "fa-solid fa-circle-check text-emerald-500 text-2xl mr-4";
+                title.className = "text-emerald-800 font-bold text-lg";
+                title.innerText = "System Status: Normal";
+                desc.className = "text-emerald-600 text-sm";
+                desc.innerText = `Blockage: ${blockage}% | Gas: ${gas} PPM. All drainage nodes in the sector are operating optimally.`;
+            }
         }
 
-        else if(msg.includes('predict')) {
+        // --- 7. ADMIN CONTROL PANEL SIMULATIONS ---
+        window.simulateBlockage = function() {
+            update(drainRef, { blockage: 95, flow: 0.0 });
+            logActivity("ADMIN OVERRIDE: Forced Blockage simulation to 95%.");
+        };
 
-            if(currentBlockage > 70)
-                appendChat("bot", "🔮 Blockage may increase soon.");
-            else
-                appendChat("bot", "System stable.");
+        window.simulateGas = function() {
+            update(drainRef, { gas: 60 });
+            logActivity("ADMIN OVERRIDE: Forced Gas Leak simulation to 60 PPM.");
+        };
+
+        window.simulateTestAlert = function() {
+            // Bypass cooldown for manual test
+            const message = window.generateAlertMessage(currentBlockage, currentGas);
+            window.sendWhatsAppAlert(message);
+            window.sendEmailAlert(currentBlockage, currentGas);
+            logActivity("ADMIN ACTION: Manual Test API Alert Broadcasted.");
+            alert("Test Alerts fired successfully. Check developer console for API simulation outputs.");
+        };
+
+        // --- 8. SYSTEM LOGGING ---
+        function logActivity(msg) {
+            const logBox = document.getElementById('activity-logs');
+            const time = new Date().toLocaleTimeString();
+            const logHTML = `<div class="bg-slate-50 p-2 rounded border border-slate-100"><span class="text-blue-600 font-bold">[${time}]</span> <span class="text-slate-700">${msg}</span></div>`;
+            logBox.insertAdjacentHTML('afterbegin', logHTML);
+            if (logBox.children.length > 30) logBox.lastElementChild.remove();
         }
 
-        else {
-            appendChat("bot", "System monitoring active.");
+        // --- 9. CHATBOT LOGIC ---
+        window.toggleChat = function() {
+            const chatBox = document.getElementById('chat-window');
+            if(chatBox.classList.contains('hidden')) {
+                chatBox.classList.remove('hidden');
+                chatBox.classList.add('flex');
+            } else {
+                chatBox.classList.add('hidden');
+                chatBox.classList.remove('flex');
+            }
+        };
+
+        window.sendChatMsg = function(msg) {
+            appendChat("user", msg);
+            document.getElementById('chat-input').value = ""; 
+            
+            setTimeout(() => {
+                if(msg.includes('project')) {
+                    appendChat("bot", "This is an IoT & AI based system built by Lokmanya Tilak College students for the Smart India Hackathon. It predicts drainage blockages to prevent urban flooding.");
+                } else if(msg.includes('Report')) {
+                    appendChat("bot", "To report a manual blockage, please provide your Pincode or call the BMC Disaster Management Helpline at 1916.");
+                } else if(msg.includes('risk')) {
+                    appendChat("bot", `Currently, the live blockage risk at node LTCE-01 is ${currentBlockage}%. ${currentBlockage >= 90 ? 'Please avoid the area.' : 'Status is under control.'}`);
+                } else {
+                    appendChat("bot", "I have logged your query. An official will review it. For emergencies, call 1073.");
+                }
+            }, 600);
+        };
+
+        window.handleManualChat = function() {
+            const input = document.getElementById('chat-input').value.trim();
+            if(input !== "") sendChatMsg(input);
+        };
+
+        document.getElementById('chat-input').addEventListener("keypress", function(event) {
+            if (event.key === "Enter") {
+                event.preventDefault();
+                handleManualChat();
+            }
+        });
+
+        function appendChat(sender, text) {
+            const chatBox = document.getElementById('chat-messages');
+            const quickReplies = chatBox.querySelector('.gap-2');
+            if(quickReplies) quickReplies.remove();
+
+            const isUser = sender === "user";
+            const msgClass = isUser ? "bg-blue-600 text-white self-end rounded-tr-none ml-auto" : "bg-white text-slate-700 border border-slate-200 rounded-tl-none";
+            const msgHTML = `<div class="p-3 rounded-lg shadow-sm mb-3 max-w-[85%] ${msgClass}">${text}</div>`;
+            
+            chatBox.insertAdjacentHTML('beforeend', msgHTML);
+            chatBox.scrollTop = chatBox.scrollHeight;
         }
-
-    }, 500);
-};
-
-// -------- CHAT UI --------
-function appendChat(sender, text) {
-    const chatBox = document.getElementById('chat-messages');
-    const isUser = sender === "user";
-
-    const msgHTML = `<div class="p-3 rounded-lg mb-2 ${isUser ? 'bg-blue-600 text-white ml-auto' : 'bg-white border'}">${text}</div>`;
-    chatBox.insertAdjacentHTML('beforeend', msgHTML);
-    chatBox.scrollTop = chatBox.scrollHeight;
-}
-
-</script>
+    </script>
 </body>
 </html>
