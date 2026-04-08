@@ -1,26 +1,35 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
+    <meta charset="UTF-8">  
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Smart Drainage Monitoring System | Ministry of Housing and Urban Affairs</title>
-    <script src="https://cdn.tailwindcss.com"></script> 
+    
+    <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script> <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
     <style>
         body { font-family: 'Inter', sans-serif; background-color: #f8fafc; color: #0f172a; }
-        .govt-header { border-top: 4px solid #f97316; /* Saffron Top Border */ }
+        .govt-header { border-top: 4px solid #f97316; }
         .card-shadow { box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03); }
-        
-        /* Smooth Transitions */
         * { transition: all 0.2s ease-in-out; }
 
         /* Scrollbar */
         ::-webkit-scrollbar { width: 6px; }
         ::-webkit-scrollbar-track { background: #f1f1f1; }
         ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
-        
+
+        /* Multi-Role Display Logic */
+        body.role-public .admin-only, body.role-public .dev-only { display: none !important; }
+        body.role-admin .dev-only { display: none !important; }
+        body.role-dev .public-only { display: none !important; } /* Dev sees admin + dev */
+
+        .blinking-red { animation: blinker 1s linear infinite; color: #dc2626; font-weight: bold; }
+        @keyframes blinker { 50% { opacity: 0.2; } }
+
         /* Chatbot Animation */
         @keyframes popUp {
             from { opacity: 0; transform: translateY(20px) scale(0.9); }
@@ -28,15 +37,40 @@
         }
         .chat-window { animation: popUp 0.3s ease-out; }
 
-        /* Role Display Logic */
-        body.role-public .admin-only { display: none !important; }
-        body.role-admin .public-only { display: none !important; }
-
-        .blinking-red { animation: blinker 1s linear infinite; color: #dc2626; font-weight: bold; }
-        @keyframes blinker { 50% { opacity: 0.3; } }
+        /* Modals */
+        .overlay { position: fixed; inset: 0; background: rgba(15, 23, 42, 0.9); z-index: 1000; display: none; align-items: center; justify-content: center; backdrop-filter: blur(4px); }
+        
+        /* Custom Toggle Switch */
+        .toggle-checkbox:checked { right: 0; border-color: #2563eb; }
+        .toggle-checkbox:checked + .toggle-label { background-color: #2563eb; }
     </style>
 </head>
-<body class="role-admin flex flex-col min-h-screen">
+<body class="role-public flex flex-col min-h-screen">
+
+    <div id="login-overlay" class="overlay">
+        <div class="bg-white rounded-xl shadow-2xl p-8 w-full max-w-sm border border-slate-200">
+            <h2 class="text-xl font-bold text-slate-800 mb-6 text-center"><i class="fa-solid fa-user-shield mr-2"></i>System Login</h2>
+            <div class="space-y-4">
+                <input id="login-user" type="text" placeholder="ID (admin / dev)" class="w-full px-4 py-2 border rounded focus:ring-2 focus:ring-blue-500 outline-none">
+                <input id="login-pass" type="password" placeholder="Password" class="w-full px-4 py-2 border rounded focus:ring-2 focus:ring-blue-500 outline-none">
+                <button onclick="handleLogin()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 rounded transition">Secure Login</button>
+                <button onclick="closeLogin()" class="w-full text-slate-500 text-sm font-medium">Cancel</button>
+            </div>
+            <div class="mt-4 text-[10px] text-center text-slate-400">Admin: admin/admin123 | Dev: dev/dev123</div>
+        </div>
+    </div>
+
+    <div id="export-overlay" class="overlay">
+        <div class="bg-white rounded-xl shadow-2xl p-8 w-full max-w-sm text-center">
+            <h2 class="text-xl font-bold text-slate-800 mb-2">Export Data Report</h2>
+            <p class="text-xs text-slate-500 mb-6">Download the system telemetry logs.</p>
+            <div class="grid grid-cols-2 gap-4">
+                <button onclick="exportCSV()" class="bg-green-100 text-green-700 hover:bg-green-200 font-bold py-3 rounded transition"><i class="fa-solid fa-file-csv text-2xl mb-1 block"></i> CSV File</button>
+                <button onclick="exportPDF()" class="bg-red-100 text-red-700 hover:bg-red-200 font-bold py-3 rounded transition"><i class="fa-solid fa-file-pdf text-2xl mb-1 block"></i> PDF Doc</button>
+            </div>
+            <button onclick="document.getElementById('export-overlay').style.display='none'" class="mt-6 text-slate-500 text-sm font-medium w-full">Close</button>
+        </div>
+    </div>
 
     <div class="govt-header bg-slate-900 text-slate-200 text-xs py-2 px-6 flex justify-between items-center z-50">
         <div class="flex items-center gap-4">
@@ -44,12 +78,28 @@
             <span class="hidden md:inline border-l border-slate-600 pl-4">Ministry of Housing and Urban Affairs</span>
         </div>
         <div class="flex items-center gap-4 font-semibold">
-            <span class="text-red-400"><i class="fa-solid fa-phone mr-1"></i> Disaster Helpline: 1916 / 1073</span>
+            <span class="text-red-400"><i class="fa-solid fa-phone mr-1"></i> Disaster Helpline: 1916</span>
+            
+            <div class="relative cursor-pointer border-l border-slate-600 pl-4 pr-2" onclick="toggleNotifications()">
+                <i class="fa-solid fa-bell text-sm hover:text-white transition"></i>
+                <span id="notif-badge" class="absolute -top-1 right-0 bg-red-500 text-white text-[9px] rounded-full h-3 w-3 flex items-center justify-center">0</span>
+                <div id="notif-dropdown" class="hidden absolute right-0 mt-3 w-72 bg-white rounded shadow-2xl border border-slate-200 z-50 p-3 text-slate-800">
+                    <div class="flex justify-between items-center border-b pb-2 mb-2">
+                        <h4 class="font-bold text-xs">Recent System Alerts</h4>
+                        <button onclick="clearNotifications(); event.stopPropagation();" class="text-[10px] text-blue-600 hover:underline">Clear All</button>
+                    </div>
+                    <div id="notif-list" class="space-y-2 max-h-48 overflow-y-auto">
+                        <div class="text-[10px] text-slate-400 italic text-center py-2">No new alerts</div>
+                    </div>
+                </div>
+            </div>
+
             <div class="border-l border-slate-600 pl-4 flex items-center gap-2">
-                <span>View Mode:</span>
-                <select id="roleSelector" onchange="changeRole(this.value)" class="bg-slate-800 text-white border border-slate-600 rounded px-2 py-1 outline-none cursor-pointer">
-                    <option value="admin">Municipal Authority (Admin)</option>
-                    <option value="public">Citizen Portal (Public)</option>
+                <span>Mode:</span>
+                <select id="roleSelector" onchange="checkRoleAccess(this.value)" class="bg-slate-800 text-white border border-slate-600 rounded px-2 py-1 outline-none cursor-pointer">
+                    <option value="public" selected>Citizen (Public)</option>
+                    <option value="admin">Authority (Admin)</option>
+                    <option value="dev">Engineer (Dev)</option>
                 </select>
             </div>
         </div>
@@ -58,23 +108,15 @@
     <nav class="bg-white border-b border-slate-200 sticky top-0 z-40 card-shadow">
         <div class="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
             <div class="flex items-center gap-4">
-                <div class="w-12 h-12 bg-blue-600 rounded-full flex items-center justify-center text-white text-2xl shadow-md">
-                    <i class="fa-solid fa-water"></i>
-                </div>
+                <div class="w-12 h-12 bg-blue-600 rounded-full flex items-center justify-center text-white text-2xl shadow-md"><i class="fa-solid fa-water"></i></div>
                 <div>
                     <h1 class="text-2xl font-bold text-slate-800 tracking-tight">SmartDrain Analytics</h1>
                     <p class="text-sm text-slate-500 font-medium">IoT Based Blockage Prediction System</p>
                 </div>
             </div>
             <div class="flex items-center gap-4">
-                <div id="connection-status" class="flex items-center gap-2 px-4 py-2 bg-slate-100 rounded-full border border-slate-200 text-sm font-semibold text-slate-600">
-                    <span class="relative flex h-3 w-3">
-                      <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-yellow-400 opacity-75"></span>
-                      <span class="relative inline-flex rounded-full h-3 w-3 bg-yellow-500"></span>
-                    </span>
-                    Connecting to Cloud...
-                </div>
-                <button class="admin-only bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-md font-semibold text-sm shadow">
+                <div id="connection-status" class="flex items-center gap-2 px-4 py-2 bg-slate-100 rounded-full border border-slate-200 text-sm font-semibold text-slate-600">Connecting to Cloud...</div>
+                <button onclick="document.getElementById('export-overlay').style.display='flex'" class="admin-only bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-md font-semibold text-sm shadow transition">
                     <i class="fa-solid fa-download mr-1"></i> Export Report
                 </button>
             </div>
@@ -83,33 +125,87 @@
 
     <main class="flex-grow max-w-7xl mx-auto w-full px-6 py-8">
         
-        <div id="system-alert" class="bg-emerald-50 border-l-4 border-emerald-500 p-4 rounded-r-md card-shadow mb-8 flex justify-between items-center">
+        <div id="system-alert" class="bg-emerald-50 border-l-4 border-emerald-500 p-4 rounded-r-md card-shadow mb-6 flex justify-between items-center transition-colors">
             <div class="flex items-center">
-                <i id="alert-icon" class="fa-solid fa-circle-check text-emerald-500 text-2xl mr-4"></i>
+                <i id="alert-icon" class="fa-solid fa-circle-check text-emerald-500 text-3xl mr-4"></i>
                 <div>
-                    <h3 id="alert-title" class="text-emerald-800 font-bold text-lg">System Status: Normal</h3>
-                    <p id="alert-desc" class="text-emerald-600 text-sm">All drainage nodes in Mumbai East region are operating smoothly. No immediate action required.</p>
+                    <h3 id="alert-title" class="text-emerald-800 font-bold text-xl uppercase tracking-wide">System Normal</h3>
+                    <p id="alert-desc" class="text-emerald-600 text-sm font-medium mt-1">All drainage nodes are operating smoothly.</p>
                 </div>
             </div>
             <div class="text-right">
-                <p class="text-xs text-slate-500 font-bold uppercase">Current Blockage</p>
-                <p class="text-3xl font-bold text-slate-800"><span id="main-blockage">0</span>%</p>
+                <p class="text-xs text-slate-500 font-bold uppercase tracking-widest">Risk Index</p>
+                <p class="text-4xl font-black text-slate-800"><span id="main-blockage">0</span><span class="text-2xl text-slate-500">%</span></p>
             </div>
         </div>
 
         <div class="grid grid-cols-1 lg:grid-cols-4 gap-6 mb-8">
-            <div class="bg-white p-6 rounded-xl border border-slate-200 card-shadow lg:col-span-1">
-                <h3 class="text-sm font-bold text-slate-400 uppercase tracking-wider mb-4 border-b pb-2">Active Node details</h3>
-                <ul class="space-y-3 text-sm">
-                    <li class="flex justify-between"><span class="text-slate-500">Location ID:</span> <span class="font-bold text-slate-800">LTCE-01</span></li>
-                    <li class="flex justify-between"><span class="text-slate-500">Zone:</span> <span class="font-bold text-slate-800">Kurla / Navi Mumbai</span></li>
-                    <li class="flex justify-between"><span class="text-slate-500">Hardware:</span> <span class="font-bold text-slate-800">ESP32 + Sensors</span></li>
-                    <li class="flex justify-between"><span class="text-slate-500">Last Ping:</span> <span class="font-bold text-emerald-600" id="last-ping">Just now</span></li>
+            <div class="bg-white p-6 rounded-xl border border-slate-200 card-shadow lg:col-span-1 h-fit">
+                <h3 class="text-sm font-bold text-slate-400 uppercase tracking-wider mb-4 border-b pb-2">Active Node Details</h3>
+                <ul class="space-y-3 text-sm font-medium">
+                    <li class="flex justify-between"><span class="text-slate-500">Location ID:</span> <span class="text-slate-800 font-bold">LTCE-01</span></li>
+                    <li class="flex justify-between"><span class="text-slate-500">Hardware:</span> <span class="text-slate-800">ESP32 + Sensors</span></li>
+                    <li class="flex justify-between"><span class="text-slate-500">Last Ping:</span> <span class="text-emerald-600 font-bold" id="last-ping">Waiting...</span></li>
+                    
+                    <li class="pt-3 border-t border-slate-100 mt-2">
+                        <div class="flex justify-between items-center mb-1">
+                            <span class="text-xs text-slate-500 font-bold uppercase">System Health</span>
+                            <span id="health-score" class="font-black text-emerald-600">100/100</span>
+                        </div>
+                        <div class="w-full bg-slate-200 rounded-full h-2">
+                            <div id="health-bar" class="bg-emerald-500 h-2 rounded-full transition-all duration-500" style="width: 100%"></div>
+                        </div>
+                    </li>
                 </ul>
-                <div class="mt-6 pt-4 border-t border-slate-100 admin-only">
-                    <button class="w-full border border-blue-600 text-blue-600 hover:bg-blue-50 py-2 rounded font-semibold text-sm">
-                        <i class="fa-solid fa-gear mr-1"></i> Configure Node
+
+                <div class="mt-5 p-3 bg-indigo-50 border border-indigo-100 rounded-lg">
+                    <div class="flex items-center gap-2 mb-1">
+                        <i class="fa-solid fa-microchip text-indigo-500"></i>
+                        <span class="text-xs font-bold text-indigo-800 uppercase tracking-wide">AI Insight Engine</span>
+                    </div>
+                    <p id="ai-insight" class="text-xs text-indigo-600 font-medium leading-relaxed">Analyzing system telemetry... Operating normally.</p>
+                </div>
+
+                <div class="mt-5 pt-4 border-t border-slate-100 admin-only">
+                    <h4 class="text-xs font-bold text-slate-500 mb-3 uppercase tracking-wide">Quick Overrides (Admin)</h4>
+                    <div class="grid grid-cols-2 gap-2">
+                        <button onclick="simScenario('flood')" class="bg-blue-50 text-blue-700 py-2 rounded text-xs font-bold border border-blue-200 hover:bg-blue-100 transition">Flood Sim</button>
+                        <button onclick="simScenario('dry')" class="bg-orange-50 text-orange-700 py-2 rounded text-xs font-bold border border-orange-200 hover:bg-orange-100 transition">Dry Block</button>
+                        <button onclick="simScenario('gas')" class="bg-yellow-50 text-yellow-700 py-2 rounded text-xs font-bold border border-yellow-200 hover:bg-yellow-100 transition">Gas Leak</button>
+                        <button onclick="simScenario('reset')" class="bg-slate-100 text-slate-700 py-2 rounded text-xs font-bold border border-slate-200 hover:bg-slate-200 transition">Reset All</button>
+                    </div>
+                    <button onclick="simulateTestAlert()" class="mt-2 w-full bg-slate-800 hover:bg-slate-900 text-white py-2 rounded text-xs font-bold transition">
+                        <i class="fa-solid fa-paper-plane mr-1"></i> Send Test APIs (Mail/WA)
                     </button>
+                </div>
+
+                <div class="mt-5 pt-4 border-t border-slate-200 dev-only">
+                    <div class="flex justify-between items-center mb-3">
+                        <h4 class="text-xs font-bold text-purple-600 uppercase tracking-wide"><i class="fa-solid fa-code mr-1"></i> Virtual Sensors</h4>
+                        
+                        <label class="flex items-center cursor-pointer">
+                            <div class="relative">
+                                <input type="checkbox" id="override-toggle" class="sr-only" onchange="toggleOverride()">
+                                <div class="block bg-slate-300 w-8 h-4 rounded-full toggle-label transition"></div>
+                                <div class="dot absolute left-1 top-1 bg-white w-2 h-2 rounded-full transition"></div>
+                            </div>
+                            <div class="ml-2 text-[10px] font-bold text-slate-500">MANUAL</div>
+                        </label>
+                    </div>
+                    
+                    <div class="space-y-3 text-[10px] font-bold text-slate-600">
+                        <div class="flex items-center gap-2"><span>Flow:</span><input type="range" id="dev-flow" min="0" max="1" step="0.1" value="0" class="flex-1" oninput="pushDevData()"><span id="dev-flow-v" class="w-4">0</span></div>
+                        <div class="flex items-center gap-2"><span>Moist:</span><input type="range" id="dev-moist" min="0" max="100" value="0" class="flex-1" oninput="pushDevData()"><span id="dev-moist-v" class="w-4">0</span></div>
+                        <div class="flex items-center gap-2"><span>Gas:</span><input type="range" id="dev-gas" min="0" max="100" value="0" class="flex-1" oninput="pushDevData()"><span id="dev-gas-v" class="w-4">0</span></div>
+                        <div class="flex items-center gap-2"><span>Dist:</span><input type="range" id="dev-dist" min="0" max="7.1" step="0.1" value="7.1" class="flex-1" oninput="pushDevData()"><span id="dev-dist-v" class="w-4">7.1</span></div>
+                    </div>
+
+                    <h4 class="text-[10px] font-bold text-slate-500 mt-4 mb-2 uppercase tracking-wide border-t pt-2">ESP32 LED Control (Simulated)</h4>
+                    <div class="flex gap-2 text-[10px]">
+                        <button class="flex-1 py-1 rounded border border-red-200 text-red-600 font-bold hover:bg-red-50" onclick="logActivity('DEV: Toggled RED Indicator LED')">RED</button>
+                        <button class="flex-1 py-1 rounded border border-slate-300 text-slate-600 font-bold hover:bg-slate-50" onclick="logActivity('DEV: Toggled WHITE Indicator LED')">WHT</button>
+                        <button class="flex-1 py-1 rounded border border-green-200 text-green-600 font-bold hover:bg-green-50" onclick="logActivity('DEV: Toggled GREEN Indicator LED')">GRN</button>
+                    </div>
                 </div>
             </div>
 
@@ -117,77 +213,76 @@
                 <div class="bg-white p-5 rounded-xl border border-slate-200 card-shadow flex flex-col justify-between">
                     <div class="flex justify-between items-start">
                         <div class="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600"><i class="fa-solid fa-water"></i></div>
-                        <span class="text-xs font-bold px-2 py-1 bg-slate-100 text-slate-500 rounded">Liters/Sec</span>
+                        <span class="text-[10px] font-bold px-2 py-1 bg-slate-100 text-slate-500 rounded uppercase tracking-wide">Liters/Sec</span>
                     </div>
                     <div>
-                        <p class="text-sm font-bold text-slate-400 uppercase mt-4">Water Flow Rate</p>
-                        <p class="text-4xl font-bold text-slate-800 mt-1"><span id="val-flow">0.0</span></p>
+                        <p class="text-xs font-bold text-slate-400 uppercase tracking-wide mt-4">Water Flow Rate</p>
+                        <p class="text-4xl font-black text-slate-800 mt-1"><span id="val-flow">0.0</span></p>
                     </div>
                 </div>
                 <div class="bg-white p-5 rounded-xl border border-slate-200 card-shadow flex flex-col justify-between">
                     <div class="flex justify-between items-start">
                         <div class="w-10 h-10 rounded-full bg-cyan-100 flex items-center justify-center text-cyan-600"><i class="fa-solid fa-droplet"></i></div>
-                        <span class="text-xs font-bold px-2 py-1 bg-slate-100 text-slate-500 rounded">Percentage</span>
+                        <span class="text-[10px] font-bold px-2 py-1 bg-slate-100 text-slate-500 rounded uppercase tracking-wide">Percentage</span>
                     </div>
                     <div>
-                        <p class="text-sm font-bold text-slate-400 uppercase mt-4">Soil Moisture</p>
-                        <p class="text-4xl font-bold text-slate-800 mt-1"><span id="val-moisture">0</span><span class="text-xl text-slate-400">%</span></p>
+                        <p class="text-xs font-bold text-slate-400 uppercase tracking-wide mt-4">Soil Moisture</p>
+                        <p class="text-4xl font-black text-slate-800 mt-1"><span id="val-moisture">0</span><span class="text-xl text-slate-400 font-medium ml-1">%</span></p>
                     </div>
                 </div>
-                <div class="bg-white p-5 rounded-xl border border-slate-200 card-shadow flex flex-col justify-between">
+                <div class="bg-white p-5 rounded-xl border border-slate-200 card-shadow flex flex-col justify-between transition-colors" id="gas-container">
                     <div class="flex justify-between items-start">
                         <div class="w-10 h-10 rounded-full bg-orange-100 flex items-center justify-center text-orange-600"><i class="fa-solid fa-cloud"></i></div>
-                        <span class="text-xs font-bold px-2 py-1 bg-slate-100 text-slate-500 rounded">PPM</span>
+                        <span class="text-[10px] font-bold px-2 py-1 bg-slate-100 text-slate-500 rounded uppercase tracking-wide">PPM</span>
                     </div>
                     <div>
-                        <p class="text-sm font-bold text-slate-400 uppercase mt-4">Methane (CH4)</p>
-                        <p class="text-4xl font-bold text-slate-800 mt-1"><span id="val-gas">0</span></p>
+                        <p class="text-xs font-bold text-slate-400 uppercase tracking-wide mt-4">Methane (CH4)</p>
+                        <p class="text-4xl font-black text-slate-800 mt-1"><span id="val-gas">0</span></p>
                     </div>
                 </div>
                 <div class="bg-white p-5 rounded-xl border border-slate-200 card-shadow flex flex-col justify-between">
                     <div class="flex justify-between items-start">
                         <div class="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center text-purple-600"><i class="fa-solid fa-ruler-vertical"></i></div>
-                        <span class="text-xs font-bold px-2 py-1 bg-slate-100 text-slate-500 rounded">Centimeters</span>
+                        <span class="text-[10px] font-bold px-2 py-1 bg-slate-100 text-slate-500 rounded uppercase tracking-wide">Centimeters</span>
                     </div>
                     <div>
-                        <p class="text-sm font-bold text-slate-400 uppercase mt-4">Surface Clearance</p>
-                        <p class="text-4xl font-bold text-slate-800 mt-1"><span id="val-distance">0.0</span></p>
+                        <p class="text-xs font-bold text-slate-400 uppercase tracking-wide mt-4">Surface Clearance</p>
+                        <p class="text-4xl font-black text-slate-800 mt-1"><span id="val-distance">0.0</span></p>
                     </div>
                 </div>
             </div>
         </div>
 
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 admin-only">
-            
             <div class="bg-white p-6 rounded-xl border border-slate-200 card-shadow lg:col-span-2">
                 <div class="flex justify-between items-center mb-6">
-                    <h3 class="text-base font-bold text-slate-800">Live Blockage Trend (Real-time)</h3>
-                    <span class="text-xs px-2 py-1 bg-blue-100 text-blue-700 font-semibold rounded"><i class="fa-solid fa-circle-dot text-[10px] mr-1"></i> Live</span>
+                    <h3 class="text-sm font-bold text-slate-800 uppercase tracking-wide">Live Blockage Trend (Last 20 Points)</h3>
+                    <span class="text-[10px] px-2 py-1 bg-blue-100 text-blue-700 font-bold rounded uppercase"><i class="fa-solid fa-circle-dot mr-1"></i> Live</span>
                 </div>
                 <div class="h-64 w-full">
                     <canvas id="blockageChart"></canvas>
                 </div>
             </div>
-
-            <div class="bg-white p-6 rounded-xl border border-slate-200 card-shadow lg:col-span-1 flex flex-col">
-                <h3 class="text-base font-bold text-slate-800 mb-4 border-b pb-2">System Audit Logs</h3>
-                <div id="activity-logs" class="flex-1 overflow-y-auto space-y-3 text-xs pr-2">
+            <div class="bg-white p-6 rounded-xl border border-slate-200 card-shadow lg:col-span-1 flex flex-col h-full">
+                <div class="flex justify-between items-center mb-4 border-b border-slate-100 pb-2">
+                    <h3 class="text-sm font-bold text-slate-800 uppercase tracking-wide">System Audit Logs</h3>
+                    <button onclick="document.getElementById('activity-logs').innerHTML=''" class="text-[10px] text-slate-400 hover:text-red-500"><i class="fa-solid fa-trash"></i></button>
+                </div>
+                <div id="activity-logs" class="flex-1 overflow-y-auto space-y-2 text-[10px] font-mono pr-2 h-64">
                     <div class="bg-slate-50 p-2 rounded border border-slate-100 text-slate-500">System initialized. Waiting for telemetry data...</div>
                 </div>
             </div>
         </div>
-
     </main>
 
     <div class="fixed bottom-6 right-6 z-50 flex flex-col items-end">
-        
         <div id="chat-window" class="hidden bg-white w-80 rounded-xl card-shadow border border-slate-200 mb-4 overflow-hidden flex-col chat-window">
             <div class="bg-blue-600 text-white p-4 flex justify-between items-center">
                 <div class="flex items-center gap-2">
                     <i class="fa-solid fa-robot text-xl"></i>
                     <div>
-                        <h4 class="font-bold text-sm">Citizen Sahayak</h4>
-                        <p class="text-[10px] text-blue-200">Govt. AI Assistant</p>
+                        <h4 class="font-bold text-sm">SmartDrain AI</h4>
+                        <p class="text-[10px] text-blue-200">Intelligent Assistant</p>
                     </div>
                 </div>
                 <button onclick="toggleChat()" class="text-white hover:text-blue-200"><i class="fa-solid fa-xmark"></i></button>
@@ -195,12 +290,12 @@
             
             <div id="chat-messages" class="p-4 h-64 overflow-y-auto bg-slate-50 text-sm space-y-4">
                 <div class="bg-white p-3 rounded-lg border border-slate-200 shadow-sm inline-block rounded-tl-none text-slate-700">
-                    Namaste! 🙏 I am the SmartDrain AI assistant. How can I help you today?
+                    Namaste! 🙏 I can provide real-time updates and system insights. What do you need?
                 </div>
                 <div class="flex flex-wrap gap-2 mt-2">
-                    <button onclick="sendChatMsg('What is this project?')" class="text-xs bg-blue-50 border border-blue-200 text-blue-700 px-3 py-1.5 rounded-full hover:bg-blue-100 transition">What is this project?</button>
-                    <button onclick="sendChatMsg('Report a Blockage')" class="text-xs bg-red-50 border border-red-200 text-red-700 px-3 py-1.5 rounded-full hover:bg-red-100 transition">Report a Blockage</button>
-                    <button onclick="sendChatMsg('Check current risk')" class="text-xs bg-slate-200 border border-slate-300 text-slate-700 px-3 py-1.5 rounded-full hover:bg-slate-300 transition">Check current risk</button>
+                    <button onclick="sendChatMsg('Check System Status')" class="text-xs bg-blue-50 border border-blue-200 text-blue-700 px-3 py-1.5 rounded-full hover:bg-blue-100 transition">Check System Status</button>
+                    <button onclick="sendChatMsg('Export Data')" class="text-xs bg-emerald-50 border border-emerald-200 text-emerald-700 px-3 py-1.5 rounded-full hover:bg-emerald-100 transition">Export Data</button>
+                    <button onclick="sendChatMsg('Admin Commands')" class="text-xs bg-slate-200 border border-slate-300 text-slate-700 px-3 py-1.5 rounded-full hover:bg-slate-300 transition">Admin Commands</button>
                 </div>
             </div>
             
@@ -210,181 +305,419 @@
             </div>
         </div>
 
-        <button onclick="toggleChat()" class="w-14 h-14 bg-blue-600 hover:bg-blue-700 text-white rounded-full card-shadow flex items-center justify-center text-2xl relative">
+        <button onclick="toggleChat()" class="w-14 h-14 bg-blue-600 hover:bg-blue-700 text-white rounded-full card-shadow flex items-center justify-center text-2xl relative transition hover:scale-110">
             <i class="fa-solid fa-message"></i>
-            <span class="absolute top-0 right-0 w-3 h-3 bg-red-500 border-2 border-white rounded-full"></span>
+            <span class="absolute top-0 right-0 w-3 h-3 bg-red-500 border-2 border-white rounded-full hidden" id="chat-badge"></span>
         </button>
     </div>
 
     <script type="module">
-        // --- 1. VIEW ROLE TOGGLE (SIH Feature) ---
-        window.changeRole = function(role) {
-            document.body.className = `role-${role} flex flex-col min-h-screen`;
-        };
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getDatabase, ref, onValue, update } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 
-        // --- 2. CHART.JS INITIALIZATION ---
+        // ==========================
+        // 1. SYSTEM INITIALIZATION
+        // ==========================
+        emailjs.init("NtUaKwbs71hj1q8Sp");
+        
+        let currentRole = 'public';
+        let manualOverride = false;
+        
+        // Globals for Export and AI
+        let currentData = { flow: 0, moisture: 0, gas: 0, distance: 0, blockage: 0, health: 100 };
+        let historyLog = []; // Stores recent data points for CSV Export
+
+        // Chart.js Setup
         const ctx = document.getElementById('blockageChart').getContext('2d');
         const chartData = {
             labels: [],
             datasets: [{
-                label: 'Blockage Risk (%)',
-                data: [],
-                borderColor: '#2563eb', // Blue-600
-                backgroundColor: 'rgba(37, 99, 235, 0.1)',
-                borderWidth: 2,
-                fill: true,
-                tension: 0.4,
-                pointRadius: 2,
-                pointBackgroundColor: '#2563eb'
+                label: 'Blockage Risk (%)', data: [], borderColor: '#2563eb', backgroundColor: 'rgba(37, 99, 235, 0.1)',
+                borderWidth: 2, fill: true, tension: 0.4, pointRadius: 3, pointBackgroundColor: '#2563eb'
             }]
         };
         const blockageChart = new Chart(ctx, {
-            type: 'line',
-            data: chartData,
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                scales: {
-                    y: { beginAtZero: true, max: 100 },
-                    x: { display: true }
-                },
-                plugins: { legend: { display: false } },
-                animation: { duration: 0 }
-            }
+            type: 'line', data: chartData,
+            options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true, max: 100 }, x: { display: true } }, plugins: { legend: { display: false } }, animation: { duration: 200 } }
         });
 
-        // --- 3. FIREBASE INTEGRATION (Real-time) ---
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
-
-        // Firebase Config
-        const firebaseConfig = {
-            apiKey: "AIzaSyCyvHXBBQ_mQ5hevFGWHozMrM_Nnm_hbGM",
-            databaseURL: "https://smartdrainageblockagesystem-default-rtdb.asia-southeast1.firebasedatabase.app/"
+        // ==========================
+        // 2. AUTH & ROLES
+        // ==========================
+        window.checkRoleAccess = function(role) {
+            if ((role === 'admin' || role === 'dev') && currentRole !== role) {
+                document.getElementById('login-overlay').style.display = 'flex';
+                document.getElementById('roleSelector').value = currentRole; 
+            } else { setRole(role); }
         };
 
-        const app = initializeApp(firebaseConfig);
-        const db = getDatabase(app);
-        const drainRef = ref(db, "drain1");
+        window.handleLogin = function() {
+            const u = document.getElementById('login-user').value.trim();
+            const p = document.getElementById('login-pass').value.trim();
+            
+            if (u === 'admin' && p === 'admin123') { authenticate('admin'); } 
+            else if (u === 'dev' && p === 'dev123') { authenticate('dev'); } 
+            else { alert("Access Denied: Invalid Credentials."); }
+        };
 
-        // UI Elements
-        const connStatus = document.getElementById('connection-status');
-        let currentBlockage = 0; // Global variable for chatbot
+        function authenticate(role) {
+            closeLogin();
+            document.getElementById('roleSelector').value = role;
+            setRole(role);
+            logActivity(`Auth Success: Logged in as ${role.toUpperCase()}.`);
+        }
 
-        // Fetch Data
-        onValue(drainRef, (snapshot) => {
-            const data = snapshot.val();
-            if (!data) return;
-
-            // Connection Active UI
-            connStatus.innerHTML = `<span class="relative flex h-3 w-3"><span class="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span></span> System Online`;
-            connStatus.className = "flex items-center gap-2 px-4 py-2 bg-emerald-50 rounded-full border border-emerald-200 text-sm font-semibold text-emerald-700";
-            document.getElementById('last-ping').innerText = new Date().toLocaleTimeString();
-
-            // Extract values
-            const flow = parseFloat(data.flow) || 0;
-            const moisture = parseInt(data.moisture) || 0;
-            const gas = parseInt(data.gas) || 0;
-            const distance = parseFloat(data.distance) || 0;
-            const blockage = parseInt(data.blockage) || 0;
-            currentBlockage = blockage; // update global
-
-            // Update Metric Cards
-            document.getElementById('val-flow').innerText = flow.toFixed(1);
-            document.getElementById('val-moisture').innerText = moisture;
-            document.getElementById('val-gas').innerText = gas;
-            document.getElementById('val-distance').innerText = distance.toFixed(1);
-            document.getElementById('main-blockage').innerText = blockage;
-
-            // Update Chart
-            const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second:'2-digit' });
-            chartData.labels.push(timeStr);
-            chartData.datasets[0].data.push(blockage);
-            if (chartData.labels.length > 15) {
-                chartData.labels.shift();
-                chartData.datasets[0].data.shift();
+        window.closeLogin = () => document.getElementById('login-overlay').style.display = 'none';
+        
+        function setRole(role) {
+            currentRole = role;
+            document.body.className = `role-${role} flex flex-col min-h-screen`;
+            if(role !== 'dev' && manualOverride) {
+                document.getElementById('override-toggle').checked = false;
+                toggleOverride(); // Auto-disable override if leaving dev mode
             }
-            blockageChart.update();
+        }
 
-            // Handle Alert States
-            updateAlertBanner(blockage);
+        // ==========================
+        // 3. EXPORT SYSTEM (CSV/PDF)
+        // ==========================
+        window.exportCSV = function() {
+            if(historyLog.length === 0) return alert("No data available to export yet.");
+            let csv = "Timestamp,Blockage(%),Gas(PPM),Flow(L/s),Moisture(%)\n";
+            historyLog.forEach(row => { csv += `${row.time},${row.b},${row.g},${row.f},${row.m}\n`; });
+            
+            const link = document.createElement("a");
+            link.href = encodeURI("data:text/csv;charset=utf-8," + csv);
+            link.download = `SmartDrain_Log_${new Date().getTime()}.csv`;
+            link.click();
+            document.getElementById('export-overlay').style.display = 'none';
+            logActivity("SYSTEM: Exported historical data to CSV.");
+        };
 
-            // Log Activity
-            logActivity(`Data Sync: Flow=${flow.toFixed(1)}L/s, Risk=${blockage}%`);
+        window.exportPDF = function() {
+            // Using jsPDF to generate a clean text report
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            
+            doc.setFontSize(16);
+            doc.text("SmartDrain Analytics - Official Report", 10, 20);
+            
+            doc.setFontSize(12);
+            doc.text(`Generated On: ${new Date().toLocaleString()}`, 10, 30);
+            doc.text(`Location: LTCE-01, Kurla Zone`, 10, 40);
+            
+            doc.setFontSize(14);
+            doc.text("Current System Status:", 10, 55);
+            doc.setFontSize(11);
+            doc.text(`- Blockage Level: ${currentData.blockage}%`, 10, 65);
+            doc.text(`- Methane Gas: ${currentData.gas} PPM`, 10, 75);
+            doc.text(`- Water Flow: ${currentData.flow} L/s`, 10, 85);
+            doc.text(`- Soil Moisture: ${currentData.moisture}%`, 10, 95);
+            doc.text(`- System Health Score: ${currentData.health}/100`, 10, 105);
+            
+            doc.save(`SmartDrain_Report_${new Date().getTime()}.pdf`);
+            document.getElementById('export-overlay').style.display = 'none';
+            logActivity("SYSTEM: Exported current status to PDF.");
+        };
 
-        }, (error) => {
-            connStatus.innerHTML = `<i class="fa-solid fa-triangle-exclamation"></i> Offline`;
-            connStatus.className = "flex items-center gap-2 px-4 py-2 bg-red-50 rounded-full border border-red-200 text-sm font-semibold text-red-700";
-            console.error("Firebase Error:", error);
+        // ==========================
+        // 4. NOTIFICATION CENTER
+        // ==========================
+        let unreadAlerts = 0;
+        window.toggleNotifications = function() {
+            document.getElementById('notif-dropdown').classList.toggle('hidden');
+            unreadAlerts = 0;
+            document.getElementById('notif-badge').innerText = '0';
+        };
+        
+        window.clearNotifications = function() {
+            document.getElementById('notif-list').innerHTML = '<div class="text-[10px] text-slate-400 italic text-center py-2">No new alerts</div>';
+        };
+
+        function addNotification(title, msg, type = 'warning') {
+            unreadAlerts++;
+            document.getElementById('notif-badge').innerText = unreadAlerts;
+            
+            const list = document.getElementById('notif-list');
+            // Remove empty placeholder if exists
+            if(list.innerText.includes("No new alerts")) list.innerHTML = '';
+            
+            const colorClass = type === 'critical' ? 'bg-red-50 text-red-800 border-red-200' : 'bg-yellow-50 text-yellow-800 border-yellow-200';
+            const icon = type === 'critical' ? 'fa-triangle-exclamation' : 'fa-bell';
+            
+            const html = `
+                <div class="p-2 border rounded-md text-[10px] ${colorClass}">
+                    <div class="font-bold flex items-center gap-1"><i class="fa-solid ${icon}"></i> ${title}</div>
+                    <div class="mt-1 opacity-90">${msg}</div>
+                    <div class="text-[8px] text-right opacity-60 mt-1">${new Date().toLocaleTimeString()}</div>
+                </div>`;
+            list.insertAdjacentHTML('afterbegin', html);
+        }
+
+        // ==========================
+        // 5. DEVELOPER OVERRIDE LOGIC
+        // ==========================
+        window.toggleOverride = function() {
+            manualOverride = document.getElementById('override-toggle').checked;
+            logActivity(manualOverride ? "DEV WARNING: System disconnected from Firebase. Using Virtual Sensors." : "DEV: Connected back to live Firebase feed.");
+            
+            if(manualOverride) { pushDevData(); } // Force initial update
+        };
+
+        window.pushDevData = function() {
+            if(!manualOverride) return;
+            
+            const f = parseFloat(document.getElementById('dev-flow').value);
+            const m = parseInt(document.getElementById('dev-moist').value);
+            const g = parseInt(document.getElementById('dev-gas').value);
+            const d = parseFloat(document.getElementById('dev-dist').value);
+            
+            // Update UI sliders text
+            document.getElementById('dev-flow-v').innerText = f;
+            document.getElementById('dev-moist-v').innerText = m;
+            document.getElementById('dev-gas-v').innerText = g;
+            document.getElementById('dev-dist-v').innerText = d;
+
+            // ESP32 Clone Logic for Blockage (Exactly as in C++ code)
+            let fn = f / 1.0; if(fn > 1) fn = 1;
+            let mn = m / 100.0;
+            let b = Math.round((1 - (0.7 * fn + 0.3 * mn)) * 100);
+            
+            // Overrides from ESP32
+            if (d >= 7.0 && f == 0 && m == 0) b = 0;
+            else if (d <= 2.0 && f == 0 && m == 0) b = 100;
+            else if (d <= 2.0 && f > 0.8 && m > 80) b = 0;
+            
+            if(b < 0) b = 0; if(b > 100) b = 100;
+
+            // Process data locally without touching Firebase
+            processData({flow: f, moisture: m, gas: g, distance: d, blockage: b});
+        };
+
+        window.simScenario = function(type) {
+            let p = {};
+            if(type === 'flood') p = { blockage: 100, flow: 1.0, distance: 1.0, moisture: 100, gas: 10 };
+            else if(type === 'dry') p = { blockage: 100, flow: 0, distance: 1.0, moisture: 0, gas: 20 };
+            else if(type === 'gas') p = { blockage: 30, flow: 0.5, distance: 5.0, moisture: 40, gas: 85 };
+            else p = { blockage: 0, flow: 0.8, distance: 6.5, moisture: 80, gas: 5 }; // reset
+            
+            if(manualOverride) {
+                // If override is on, adjust sliders and process locally
+                document.getElementById('dev-flow').value = p.flow;
+                document.getElementById('dev-moist').value = p.moisture;
+                document.getElementById('dev-gas').value = p.gas;
+                document.getElementById('dev-dist').value = p.distance;
+                pushDevData();
+                logActivity(`DEV: Loaded Virtual Scenario: ${type.toUpperCase()}`);
+            } else {
+                // If live, push to Firebase
+                update(drainRef, p);
+                logActivity(`ADMIN: Pushed Scenario to Live Cloud: ${type.toUpperCase()}`);
+            }
+        };
+
+        // ==========================
+        // 6. FIREBASE & DATA PROCESSING
+        // ==========================
+        const firebaseConfig = { apiKey: "AIzaSyCyvHXBBQ_mQ5hevFGWHozMrM_Nnm_hbGM", databaseURL: "https://smartdrainageblockagesystem-default-rtdb.asia-southeast1.firebasedatabase.app/" };
+        const app = initializeApp(firebaseConfig);
+        const drainRef = ref(getDatabase(app), "drain1");
+
+        let offlineTimer;
+        let hasSentCriticalAlert = false; 
+
+        onValue(drainRef, (snapshot) => {
+            if(manualOverride) return; // Block live data if Dev mode is testing locally
+            const data = snapshot.val();
+            if (data) processData(data);
         });
 
-        // --- 4. ALERT LOGIC ---
-        function updateAlertBanner(blockage) {
+        function processData(data) {
+            // Offline detection reset
+            clearTimeout(offlineTimer);
+            offlineTimer = setTimeout(() => {
+                document.getElementById('connection-status').innerHTML = `<i class="fa-solid fa-triangle-exclamation"></i> Device Offline`;
+                document.getElementById('connection-status').className = "flex items-center gap-2 px-4 py-2 bg-red-50 rounded-full border border-red-200 text-sm font-semibold text-red-700";
+            }, 30000); 
+
+            // Connection Active UI
+            document.getElementById('connection-status').innerHTML = `<span class="relative flex h-3 w-3"><span class="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span></span> System Online`;
+            document.getElementById('connection-status').className = "flex items-center gap-2 px-4 py-2 bg-emerald-50 rounded-full border border-emerald-200 text-sm font-semibold text-emerald-700";
+            document.getElementById('last-ping').innerText = new Date().toLocaleTimeString();
+
+            // Store Globally
+            currentData.flow = parseFloat(data.flow) || 0;
+            currentData.moisture = parseInt(data.moisture) || 0;
+            currentData.gas = parseInt(data.gas) || 0;
+            currentData.distance = parseFloat(data.distance) || 0;
+            currentData.blockage = parseInt(data.blockage) || 0;
+            
+            // Calculate System Health Score (0-100)
+            let penalty = (currentData.blockage * 0.6) + (currentData.gas * 0.4);
+            currentData.health = Math.max(0, Math.round(100 - penalty));
+
+            // Update DOM UI
+            document.getElementById('val-flow').innerText = currentData.flow.toFixed(1);
+            document.getElementById('val-moisture').innerText = currentData.moisture;
+            document.getElementById('val-gas').innerText = currentData.gas;
+            document.getElementById('val-distance').innerText = currentData.distance.toFixed(1);
+            document.getElementById('main-blockage').innerText = currentData.blockage;
+            
+            document.getElementById('health-score').innerText = `${currentData.health}/100`;
+            const hb = document.getElementById('health-bar');
+            hb.style.width = `${currentData.health}%`;
+            hb.className = `h-2 rounded-full transition-all duration-500 ${currentData.health > 70 ? 'bg-emerald-500' : currentData.health > 40 ? 'bg-yellow-500' : 'bg-red-500'}`;
+
+            // Gas Alert UI
+            if (currentData.gas >= 50) document.getElementById('gas-container').classList.add('bg-red-50', 'border-red-300', 'blinking-red');
+            else document.getElementById('gas-container').classList.remove('bg-red-50', 'border-red-300', 'blinking-red');
+
+            // History Log (for Export & Chart)
+            const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second:'2-digit' });
+            historyLog.push({ time: timeStr, b: currentData.blockage, g: currentData.gas, f: currentData.flow, m: currentData.moisture });
+            if(historyLog.length > 50) historyLog.shift(); // Keep last 50 in memory
+
+            chartData.labels.push(timeStr);
+            chartData.datasets[0].data.push(currentData.blockage);
+            if (chartData.labels.length > 20) { chartData.labels.shift(); chartData.datasets[0].data.shift(); }
+            blockageChart.update();
+
+            // Run Analysis Engine
+            analyzeSystem();
+        }
+
+        // ==========================
+        // 7. INTELLIGENCE & AUTO-ALERTS
+        // ==========================
+        function analyzeSystem() {
+            let b = currentData.blockage;
+            let g = currentData.gas;
+            let blockStatus = (b >= 90) ? "CRITICAL" : (b >= 70) ? "WARNING" : "NORMAL";
+            let gasStatus = (g >= 50) ? "DANGEROUS" : (g >= 30) ? "MODERATE" : "NORMAL";
+            
+            // Generate AI Insight Text
+            let insight = "";
+            if (b >= 90) insight = "CRITICAL: Immediate physical clearing required. Flooding risk is absolute.";
+            else if (g >= 50) insight = "CRITICAL: Methane toxicity detected. Evacuate personnel immediately.";
+            else if (b >= 70) insight = "WARNING: Silt build-up detected. Scheduled maintenance advised within 48h.";
+            else if (currentData.flow > 0.8 && b < 30) insight = "OPTIMAL: High flow rate effectively clearing minor debris.";
+            else insight = "NORMAL: Drainage system is functioning within designated baseline parameters.";
+            
+            document.getElementById('ai-insight').innerText = insight;
+            document.getElementById('ai-insight').className = `text-xs font-medium mt-1 leading-relaxed ${b >= 70 || g >= 50 ? 'text-red-600 font-bold' : 'text-indigo-600'}`;
+
+            // Handle UI Banner Updates
             const banner = document.getElementById('system-alert');
             const icon = document.getElementById('alert-icon');
             const title = document.getElementById('alert-title');
             const desc = document.getElementById('alert-desc');
 
-            if (blockage >= 90) {
-                banner.className = "bg-red-50 border-l-4 border-red-600 p-4 rounded-r-md card-shadow mb-8 flex justify-between items-center";
+            if (blockStatus === "CRITICAL" || gasStatus === "DANGEROUS") {
+                banner.className = "bg-red-50 border-l-4 border-red-600 p-4 rounded-r-md card-shadow mb-6 flex justify-between items-center transition-colors";
                 icon.className = "fa-solid fa-triangle-exclamation text-red-600 text-3xl mr-4 blinking-red";
-                title.className = "text-red-800 font-bold text-lg uppercase";
+                title.className = "text-red-800 font-bold text-xl uppercase";
                 title.innerText = "CRITICAL EMERGENCY ALERT";
-                desc.className = "text-red-700 text-sm font-semibold";
-                desc.innerText = "Blockage exceeded 90%. Flooding imminent. Field response team dispatched to LTCE-01.";
-            } else if (blockage >= 70) {
-                banner.className = "bg-yellow-50 border-l-4 border-yellow-500 p-4 rounded-r-md card-shadow mb-8 flex justify-between items-center";
-                icon.className = "fa-solid fa-bell text-yellow-600 text-2xl mr-4";
-                title.className = "text-yellow-800 font-bold text-lg";
-                title.innerText = "Warning: Elevated Risk";
-                desc.className = "text-yellow-700 text-sm";
-                desc.innerText = "Blockage levels are high. Continuous monitoring advised.";
+                desc.className = "text-red-700 text-sm font-semibold mt-1";
+                desc.innerText = `Blockage: ${b}% | Methane: ${g} PPM. Protocols activated.`;
+            } else if (blockStatus === "WARNING" || gasStatus === "MODERATE") {
+                banner.className = "bg-yellow-50 border-l-4 border-yellow-500 p-4 rounded-r-md card-shadow mb-6 flex justify-between items-center transition-colors";
+                icon.className = "fa-solid fa-bell text-yellow-600 text-3xl mr-4";
+                title.className = "text-yellow-800 font-bold text-xl uppercase";
+                title.innerText = "ELEVATED RISK WARNING";
+                desc.className = "text-yellow-700 text-sm font-medium mt-1";
+                desc.innerText = `Blockage: ${b}% | Methane: ${g} PPM. Monitor closely.`;
             } else {
-                banner.className = "bg-emerald-50 border-l-4 border-emerald-500 p-4 rounded-r-md card-shadow mb-8 flex justify-between items-center";
-                icon.className = "fa-solid fa-circle-check text-emerald-500 text-2xl mr-4";
-                title.className = "text-emerald-800 font-bold text-lg";
-                title.innerText = "System Status: Normal";
-                desc.className = "text-emerald-600 text-sm";
-                desc.innerText = "All drainage nodes in Mumbai region are operating smoothly.";
+                banner.className = "bg-emerald-50 border-l-4 border-emerald-500 p-4 rounded-r-md card-shadow mb-6 flex justify-between items-center transition-colors";
+                icon.className = "fa-solid fa-circle-check text-emerald-500 text-3xl mr-4";
+                title.className = "text-emerald-800 font-bold text-xl uppercase";
+                title.innerText = "System Normal";
+                desc.className = "text-emerald-600 text-sm font-medium mt-1";
+                desc.innerText = `All nodes operating smoothly. No immediate threat.`;
+            }
+
+            // SMART AUTO-TRIGGER (Fires once upon crossing threshold)
+            let isSystemCritical = (blockStatus === "CRITICAL" || gasStatus === "DANGEROUS");
+            let isSystemWarning = (blockStatus === "WARNING" || gasStatus === "MODERATE");
+
+            if (isSystemCritical && !hasSentCriticalAlert) {
+                hasSentCriticalAlert = true;
+                logActivity("⚠️ SYSTEM BREACH: Initiating Communication Protocols...");
+                addNotification("Critical Emergency", `Blockage at ${b}% or Gas at ${g}PPM.`, "critical");
+                
+                // Fire API
+                const msg = `🚨 CRITICAL DRAIN ALERT\nLocation: LTCE-01\nBlockage: ${b}%\nGas: ${g} PPM\nAction Required.`;
+                window.sendWhatsAppAlert(msg);
+                window.sendEmailAlert(b, g);
+
+            } else if (!isSystemCritical && !isSystemWarning && hasSentCriticalAlert) {
+                // Reset when things are fully normal
+                hasSentCriticalAlert = false;
+                logActivity("✅ THREAT CLEARED: Auto-Alert reset completed.");
+                addNotification("System Restored", "Parameters returned to normal safe levels.", "warning");
             }
         }
 
-        // --- 5. SYSTEM LOGS ---
+        // ==========================
+        // 8. API & NOTIFICATION TRIGGERS
+        // ==========================
+        window.sendWhatsAppAlert = function(message) {
+            console.log("📱 [WHATSAPP API TRIGGERED]");
+            console.log("Sending to Broadcast List...\n" + message);
+        };
+
+        window.sendEmailAlert = function(blockage, gas) {
+            const mailingList = "dubeyneha8928@gmail.com, mamtaguptaa2005@gmail.com, daganivenketesh8@gmail.com, sjha68298@gmail.com";
+            const templateParams = { to_email: mailingList, location: "LTCE-01, Kurla Zone", blockage: blockage + "%", gas: gas + " PPM", timestamp: new Date().toLocaleString() };
+            
+            emailjs.send('service_q7nfhac', 'template_eiy1jha', templateParams)
+              .then(() => logActivity("📧 SUCCESS: Emergency Emails sent to Admin List."))
+              .catch(err => console.error("Email Error:", err));
+        };
+
+        window.simulateTestAlert = function() {
+            window.sendWhatsAppAlert("TEST ALERT FROM ADMIN DASHBOARD");
+            window.sendEmailAlert(currentData.blockage, currentData.gas);
+            addNotification("Manual Override API", "Test APIs dispatched by Admin.", "warning");
+            alert("Test Alerts fired to WhatsApp logic and EmailJS.");
+        };
+
         function logActivity(msg) {
             const logBox = document.getElementById('activity-logs');
             const time = new Date().toLocaleTimeString();
             const logHTML = `<div class="bg-slate-50 p-2 rounded border border-slate-100"><span class="text-blue-600 font-bold">[${time}]</span> <span class="text-slate-700">${msg}</span></div>`;
             logBox.insertAdjacentHTML('afterbegin', logHTML);
-            if (logBox.children.length > 20) logBox.lastElementChild.remove();
+            if (logBox.children.length > 30) logBox.lastElementChild.remove();
         }
 
-        // --- 6. CHATBOT LOGIC ---
+        // ==========================
+        // 9. SMART CHATBOT UPGRADE
+        // ==========================
         window.toggleChat = function() {
-            const chatBox = document.getElementById('chat-window');
-            if(chatBox.classList.contains('hidden')) {
-                chatBox.classList.remove('hidden');
-                chatBox.classList.add('flex');
-            } else {
-                chatBox.classList.add('hidden');
-                chatBox.classList.remove('flex');
-            }
+            document.getElementById('chat-window').classList.toggle('hidden');
+            document.getElementById('chat-window').classList.toggle('flex');
+            document.getElementById('chat-badge').classList.add('hidden');
         };
 
         window.sendChatMsg = function(msg) {
             appendChat("user", msg);
-            document.getElementById('chat-input').value = ""; // clear input
+            document.getElementById('chat-input').value = ""; 
             
-            // Bot Response Delay simulation
             setTimeout(() => {
-                if(msg.includes('project')) {
-                    appendChat("bot", "This is an IoT & AI based system built by Lokmanya Tilak College students for the Smart India Hackathon. It predicts drainage blockages to prevent urban flooding.");
-                } else if(msg.includes('Report')) {
-                    appendChat("bot", "To report a manual blockage, please provide your Pincode or call the BMC Disaster Management Helpline at 1916.");
-                } else if(msg.includes('risk')) {
-                    appendChat("bot", `Currently, the live blockage risk at node LTCE-01 is ${currentBlockage}%. ${currentBlockage >= 90 ? 'Please avoid the area.' : 'Status is under control.'}`);
+                let response = "";
+                let lw = msg.toLowerCase();
+
+                if(lw.includes('status') || lw.includes('risk')) {
+                    response = `Currently, the blockage is ${currentData.blockage}% and gas is ${currentData.gas} PPM. System health is ${currentData.health}%. <br><b>AI Insight:</b> ${document.getElementById('ai-insight').innerText}`;
+                } else if(lw.includes('export') || lw.includes('data')) {
+                    response = "You can export the current system report by clicking the 'Export Report' button at the top right of the dashboard. It supports CSV and PDF.";
+                } else if(lw.includes('admin') || lw.includes('command')) {
+                    response = "To access override controls, please select 'Authority (Admin)' or 'Engineer (Dev)' from the top right menu and log in.";
+                } else if(lw.includes('project')) {
+                    response = "This is an IoT & AI based prediction system built by LTCE students for the Smart India Hackathon to prevent urban flooding.";
                 } else {
-                    appendChat("bot", "I have logged your query. An official will review it. For emergencies, call 1073.");
+                    response = "I've logged your request. You can ask me about 'System Status', 'Export Data', or 'Admin Commands'.";
                 }
+                appendChat("bot", response);
             }, 600);
         };
 
@@ -393,24 +726,15 @@
             if(input !== "") sendChatMsg(input);
         };
 
-        // Trigger send on Enter key
         document.getElementById('chat-input').addEventListener("keypress", function(event) {
-            if (event.key === "Enter") {
-                event.preventDefault();
-                handleManualChat();
-            }
+            if (event.key === "Enter") { event.preventDefault(); handleManualChat(); }
         });
 
         function appendChat(sender, text) {
             const chatBox = document.getElementById('chat-messages');
-            // Remove quick replies if they exist
-            const quickReplies = chatBox.querySelector('.gap-2');
-            if(quickReplies) quickReplies.remove();
-
             const isUser = sender === "user";
             const msgClass = isUser ? "bg-blue-600 text-white self-end rounded-tr-none ml-auto" : "bg-white text-slate-700 border border-slate-200 rounded-tl-none";
-            
-            const msgHTML = `<div class="p-3 rounded-lg shadow-sm mb-3 max-w-[85%] ${msgClass}">${text}</div>`;
+            const msgHTML = `<div class="p-3 rounded-lg shadow-sm mb-3 max-w-[85%] ${msgClass} text-xs leading-relaxed">${text}</div>`;
             chatBox.insertAdjacentHTML('beforeend', msgHTML);
             chatBox.scrollTop = chatBox.scrollHeight;
         }
