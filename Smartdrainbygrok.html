@@ -3,16 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Smart Drainage Blockage Prediction & Alert System - Municipal Dashboard for Mumbai Smart City Initiative">
-    <title>SmartDrain • Mumbai | Drainage Blockage Prediction &amp; Alert System</title>
-    <!-- Tailwind CSS CDN -->
+    <meta name="description" content="Smart Drainage Blockage Prediction & Alert System - Municipal Dashboard">
+    <title>SmartDrain • Live Dashboard</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Chart.js CDN --> 
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-    <!-- Font Awesome for icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500&amp;family=Space+Grotesk:wght@500&amp;display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500&family=Space+Grotesk:wght@500&display=swap');
         
         :root {
             --neon-cyan: #00f7ff;
@@ -51,29 +48,6 @@
                 0 0 6px -3px var(--neon-cyan);
         }
         
-        .section-header {
-            position: relative;
-        }
-        
-        .section-header::after {
-            content: '';
-            position: absolute;
-            bottom: -4px;
-            left: 0;
-            width: 64px;
-            height: 3px;
-            background: linear-gradient(to right, #00f7ff, transparent);
-        }
-        
-        @keyframes pulse-neon {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.7; }
-        }
-        
-        .neon-pulse {
-            animation: pulse-neon 2s infinite;
-        }
-        
         @keyframes flash-alert {
             0%, 100% { background-color: #f00; }
             50% { background-color: #ff8800; }
@@ -81,15 +55,6 @@
         
         .alert-flash {
             animation: flash-alert 1.2s infinite;
-        }
-        
-        .dashboard-card {
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-        
-        .dashboard-card:hover {
-            transform: translateY(-4px);
-            box-shadow: 0 25px 50px -12px rgb(0 247 255 / 0.15);
         }
         
         .progress-bar {
@@ -102,889 +67,158 @@
     </style>
 </head>
 <body class="tailwind-ready bg-[#020C1B] text-white">
-    <!-- NAVBAR -->
     <nav class="fixed top-0 left-0 right-0 z-50 glass border-b border-[#00f7ff]/20">
         <div class="max-w-screen-2xl mx-auto px-8 py-5 flex items-center justify-between">
-            <!-- Logo -->
             <div class="flex items-center gap-x-3">
                 <div class="w-9 h-9 bg-[#00f7ff] text-[#020C1B] rounded-2xl flex items-center justify-center font-bold text-2xl shadow-[0_0_15px_#00f7ff]">
                     💧
                 </div>
                 <div>
                     <h1 class="title-font text-2xl tracking-[-1px]">SmartDrain</h1>
-                    <p class="text-[10px] text-[#00f7ff] -mt-1 font-medium">MUMBAI SMART CITY</p>
+                    <p class="text-[10px] text-[#00f7ff] -mt-1 font-medium">IoT PROTOTYPE NODE</p>
                 </div>
             </div>
             
-            <!-- Menu -->
             <div class="hidden md:flex items-center gap-x-8 text-sm font-medium">
-                <a href="#hero" onclick="smoothScrollTo('hero')" class="hover:text-[#00f7ff] flex items-center gap-x-1">
-                    <i class="fa-solid fa-house"></i>
-                    <span>HOME</span>
-                </a>
                 <a href="#dashboard" onclick="smoothScrollTo('dashboard')" class="hover:text-[#00f7ff]">LIVE DASHBOARD</a>
-                <a href="#prediction" onclick="smoothScrollTo('prediction')" class="hover:text-[#00f7ff]">PREDICTION ENGINE</a>
-                <a href="#architecture" onclick="smoothScrollTo('architecture')" class="hover:text-[#00f7ff]">ARCHITECTURE</a>
-                <a href="#alerts" onclick="smoothScrollTo('alerts')" class="hover:text-[#00f7ff]">ALERTS</a>
+                <a href="#prediction" onclick="smoothScrollTo('prediction')" class="hover:text-[#00f7ff]">AI PREDICTION</a>
             </div>
             
             <div class="flex items-center gap-x-4">
-                <!-- Status -->
-                <div class="flex items-center bg-[#0A2540] text-[#00f7ff] text-xs font-mono px-4 h-9 rounded-3xl border border-[#00f7ff]/30">
-                    <div class="w-2 h-2 bg-[#00f7ff] rounded-full animate-pulse mr-2"></div>
-                    LIVE • ALL SENSORS ONLINE
+                <div id="connection-status" class="flex items-center bg-[#0A2540] text-yellow-400 text-xs font-mono px-4 h-9 rounded-3xl border border-yellow-400/30">
+                    <div class="w-2 h-2 bg-yellow-400 rounded-full animate-pulse mr-2"></div>
+                    CONNECTING TO FIREBASE...
                 </div>
-                
-                <!-- User -->
-                <div class="flex items-center gap-x-2 bg-[#0A2540] px-4 h-9 rounded-3xl border border-[#00f7ff]/20">
-                    <i class="fa-solid fa-user-shield"></i>
-                    <span class="text-sm font-medium">MCGM Control Room</span>
-                </div>
-                
-                <!-- Mobile menu toggle -->
-                <button onclick="toggleMobileMenu()" class="md:hidden w-9 h-9 flex items-center justify-center text-2xl">
-                    <i class="fa-solid fa-bars"></i>
-                </button>
-            </div>
-        </div>
-        
-        <!-- Mobile Menu -->
-        <div id="mobileMenu" class="hidden md:hidden glass border-t border-[#00f7ff]/20 px-8 py-6">
-            <div class="flex flex-col gap-y-4 text-sm font-medium">
-                <a href="#hero" onclick="smoothScrollTo('hero');toggleMobileMenu()" class="flex items-center gap-x-3 py-2">🏠 HOME</a>
-                <a href="#dashboard" onclick="smoothScrollTo('dashboard');toggleMobileMenu()" class="flex items-center gap-x-3 py-2">📊 LIVE DASHBOARD</a>
-                <a href="#prediction" onclick="smoothScrollTo('prediction');toggleMobileMenu()" class="flex items-center gap-x-3 py-2">🔮 PREDICTION ENGINE</a>
-                <a href="#architecture" onclick="smoothScrollTo('architecture');toggleMobileMenu()" class="flex items-center gap-x-3 py-2">🏗️ ARCHITECTURE</a>
-                <a href="#alerts" onclick="smoothScrollTo('alerts');toggleMobileMenu()" class="flex items-center gap-x-3 py-2">🚨 ALERTS</a>
             </div>
         </div>
     </nav>
 
-    <!-- HERO SECTION -->
-    <section id="hero" class="min-h-screen pt-20 map-bg flex items-center relative overflow-hidden">
-        <div class="max-w-screen-2xl mx-auto px-8 grid md:grid-cols-2 gap-12 items-center">
-            <div class="space-y-8">
-                <div class="inline-flex items-center gap-x-2 bg-[#0A2540] text-[#00f7ff] text-sm font-medium px-6 py-2 rounded-3xl border border-[#00f7ff]/30">
-                    <i class="fa-solid fa-circle-check"></i>
-                    MUMBAI MUNICIPAL CORPORATION
-                </div>
-                
-                <h1 class="text-6xl md:text-7xl title-font leading-none tracking-[-2px] hero-glow">
-                    SMART DRAINAGE<br>BLOCKAGE PREDICTION<br>&amp; ALERT SYSTEM
-                </h1>
-                
-                <p class="text-2xl text-gray-300 max-w-lg">
-                    Real-time IoT monitoring. AI-powered flood risk prediction. 
-                    Preventing Mumbai's monsoon chaos.
-                </p>
-                
-                <div class="flex items-center gap-x-4">
-                    <button onclick="smoothScrollTo('dashboard')" 
-                            class="px-8 py-4 bg-[#00f7ff] hover:bg-white text-[#020C1B] font-semibold rounded-3xl flex items-center gap-x-3 text-lg shadow-[0_0_30px_#00f7ff]">
-                        <i class="fa-solid fa-chart-line"></i>
-                        OPEN LIVE DASHBOARD
-                    </button>
-                    
-                    <button onclick="showFirebaseModal()" 
-                            class="px-8 py-4 border border-[#00f7ff]/50 hover:border-[#00f7ff] rounded-3xl flex items-center gap-x-3">
-                        <i class="fa-solid fa-plug"></i>
-                        CONNECT FIREBASE
-                    </button>
-                </div>
-                
-                <div class="flex items-center gap-x-8 text-sm">
-                    <div class="flex items-center">
-                        <i class="fa-solid fa-wifi text-[#00f7ff] mr-2"></i>
-                        <div>
-                            <div class="font-medium">142 IoT Sensors</div>
-                            <div class="text-xs text-gray-400">Deployed across 47 drains</div>
-                        </div>
-                    </div>
-                    <div class="h-10 w-px bg-white/20"></div>
-                    <div class="flex items-center">
-                        <i class="fa-solid fa-brain text-[#00f7ff] mr-2"></i>
-                        <div>
-                            <div class="font-medium">99.4% Prediction Accuracy</div>
-                            <div class="text-xs text-gray-400">Last 30 days</div>
-                        </div>
-                    </div>
-                    <div class="h-10 w-px bg-white/20"></div>
-                    <div class="flex items-center">
-                        <i class="fa-solid fa-bell text-[#00f7ff] mr-2"></i>
-                        <div>
-                            <div class="font-medium">8 Active Alerts</div>
-                            <div class="text-xs text-gray-400">3 in DANGER zone</div>
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- Trust bar -->
-                <div class="pt-8 border-t border-white/10 flex items-center gap-x-8 text-xs uppercase tracking-widest">
-                    <div class="flex items-center gap-x-6">
-                        <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/0/0e/MCGM_Logo.svg/512px-MCGM_Logo.svg.png" alt="MCGM" class="h-6 opacity-70">
-                        <span class="text-gray-400">MUNICIPAL CORPORATION OF GREATER MUMBAI</span>
-                    </div>
-                    <div class="text-[#00f7ff]">•</div>
-                    <div>SMART CITIES MISSION • INDIA</div>
-                </div>
-            </div>
-            
-            <!-- Hero visual -->
-            <div class="relative hidden md:flex justify-end">
-                <div class="glass neon-border rounded-3xl p-8 w-full max-w-md shadow-2xl">
-                    <div class="flex justify-between items-center mb-6">
-                        <div class="text-sm font-medium flex items-center">
-                            <span class="text-[#00f7ff]">LIVE</span>
-                            <span class="ml-2 text-white">Kurla Main Drain</span>
-                        </div>
-                        <div class="px-3 py-1 text-xs font-mono bg-red-500/80 text-white rounded-2xl flex items-center">
-                            <i class="fa-solid fa-triangle-exclamation mr-1"></i>
-                            DANGER
-                        </div>
-                    </div>
-                    
-                    <!-- Fake mini gauge -->
-                    <div class="relative mx-auto w-48 h-48">
-                        <svg class="w-48 h-48 -rotate-90" viewBox="0 0 42 42">
-                            <circle cx="21" cy="21" r="15" fill="none" stroke="#334155" stroke-width="6"></circle>
-                            <circle cx="21" cy="21" r="15" fill="none" stroke="#00f7ff" stroke-width="6" 
-                                    stroke-dasharray="94.2" stroke-dashoffset="23" stroke-linecap="round"></circle>
-                        </svg>
-                        <div class="absolute inset-0 flex flex-col items-center justify-center">
-                            <div class="text-5xl font-mono font-semibold text-[#00f7ff]">87</div>
-                            <div class="text-xs tracking-[2px] text-gray-400">BLOCKAGE RISK</div>
-                            <div class="text-[10px] text-red-400 mt-1">FLOOD IN 4H 12M</div>
-                        </div>
-                    </div>
-                    
-                    <div class="grid grid-cols-3 gap-4 text-center text-xs mt-6">
-                        <div>
-                            <div class="text-[#00f7ff]">FLOW</div>
-                            <div class="font-mono text-lg">12.4 L/s</div>
-                        </div>
-                        <div>
-                            <div class="text-[#00f7ff]">MOISTURE</div>
-                            <div class="font-mono text-lg">94%</div>
-                        </div>
-                        <div>
-                            <div class="text-[#00f7ff]">GAS</div>
-                            <div class="font-mono text-lg">68 ppm</div>
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- Floating badges -->
-                <div class="absolute -top-6 -left-6 glass neon-border text-xs px-5 py-3 rounded-3xl flex items-center shadow-xl">
-                    <i class="fa-solid fa-cloud-rain mr-2 text-[#00f7ff]"></i>
-                    Monsoon Alert • 210 mm expected
-                </div>
-                
-                <div class="absolute -bottom-6 right-12 glass neon-border px-6 py-2 rounded-3xl text-sm font-medium flex items-center">
-                    <span class="text-emerald-400">●</span>
-                    <span class="ml-2">3 drains SAFE</span>
-                </div>
-            </div>
-        </div>
-        
-        <!-- Scroll indicator -->
-        <div class="absolute bottom-12 left-1/2 flex flex-col items-center text-xs text-[#00f7ff]">
-            <div>SCROLL FOR LIVE MONITORING</div>
-            <i class="fa-solid fa-chevron-down animate-bounce mt-2"></i>
-        </div>
-    </section>
-
-    <!-- PROBLEM STATEMENT -->
-    <section class="max-w-screen-2xl mx-auto px-8 py-20">
-        <div class="grid md:grid-cols-12 gap-16 items-center">
-            <div class="md:col-span-5">
-                <span class="px-4 py-1 bg-orange-400/10 text-orange-400 text-sm font-medium rounded-3xl">MUMBAI FLOODING CRISIS</span>
-                <h2 class="section-header text-5xl title-font mt-4 leading-none">Every monsoon,<br>Mumbai drowns in its own drains.</h2>
-                <p class="mt-8 text-xl text-gray-300">
-                    In 2025 alone, over 42 major flooding events were recorded. Blocked drainage systems caused ₹1,800+ crore in damages and disrupted the lives of 8.4 million citizens.
-                </p>
-                <div class="mt-10 grid grid-cols-3 gap-8">
-                    <div>
-                        <div class="text-4xl font-mono text-[#00f7ff]">214</div>
-                        <div class="text-sm">Hours of traffic paralysis</div>
-                    </div>
-                    <div>
-                        <div class="text-4xl font-mono text-[#00f7ff]">19</div>
-                        <div class="text-sm">Human lives lost</div>
-                    </div>
-                    <div>
-                        <div class="text-4xl font-mono text-[#00f7ff]">₹1,847 Cr</div>
-                        <div class="text-sm">Economic loss</div>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="md:col-span-7 glass neon-border rounded-3xl p-10 text-gray-300">
-                <div class="flex gap-6">
-                    <div class="flex-1">
-                        <i class="fa-solid fa-droplet text-6xl text-[#00f7ff] mb-6"></i>
-                        <h4 class="font-semibold text-white">Clogged drains = water stagnation</h4>
-                        <p class="mt-3 text-sm">Plastic waste, silt, and construction debris choke 68% of Mumbai’s 2,100+ km drainage network during heavy rains.</p>
-                    </div>
-                    <div class="flex-1">
-                        <i class="fa-solid fa-house-flood-water text-6xl text-[#00f7ff] mb-6"></i>
-                        <h4 class="font-semibold text-white">No early warning</h4>
-                        <p class="mt-3 text-sm">Municipal teams rely on manual inspections. By the time blockages are reported, flooding is already underway.</p>
-                    </div>
-                    <div class="flex-1">
-                        <i class="fa-solid fa-chart-line-down text-6xl text-[#00f7ff] mb-6"></i>
-                        <h4 class="font-semibold text-white">Reactive, not predictive</h4>
-                        <p class="mt-3 text-sm">Traditional systems cannot forecast blockage risk 24–48 hours in advance.</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- SOLUTION OVERVIEW -->
-    <section class="bg-[#0A2540] py-20">
-        <div class="max-w-screen-2xl mx-auto px-8">
-            <div class="text-center mb-12">
-                <span class="text-[#00f7ff] text-sm font-medium tracking-widest">HOW IT WORKS</span>
-                <h2 class="title-font text-5xl mt-3">IoT + AI = Zero Flooding</h2>
-            </div>
-            
-            <div class="grid md:grid-cols-3 gap-8">
-                <div class="glass neon-border rounded-3xl p-8 text-center">
-                    <div class="w-16 h-16 mx-auto bg-[#00f7ff]/10 rounded-2xl flex items-center justify-center text-3xl mb-6">📡</div>
-                    <h3 class="text-xl font-semibold mb-3">IoT Sensors</h3>
-                    <p class="text-gray-400">Ultrasonic flow meters, capacitive moisture sensors, methane detectors &amp; vision-based blockage cameras installed inside drains.</p>
-                    <div class="text-xs mt-8 text-[#00f7ff] font-medium">Deployed in Andheri • Bandra • Kurla • 44 more locations</div>
-                </div>
-                
-                <div class="glass neon-border rounded-3xl p-8 text-center">
-                    <div class="w-16 h-16 mx-auto bg-[#00f7ff]/10 rounded-2xl flex items-center justify-center text-3xl mb-6">☁️</div>
-                    <h3 class="text-xl font-semibold mb-3">Firebase Realtime Database</h3>
-                    <p class="text-gray-400">Sensor data is pushed every 8 seconds to a secure cloud backend. Zero latency. Scalable to 10,000+ sensors.</p>
-                    <div class="mt-8 text-xs bg-white/10 py-2 px-6 rounded-3xl inline-flex items-center font-mono">firebase.database().ref('drains')</div>
-                </div>
-                
-                <div class="glass neon-border rounded-3xl p-8 text-center">
-                    <div class="w-16 h-16 mx-auto bg-[#00f7ff]/10 rounded-2xl flex items-center justify-center text-3xl mb-6">🧠</div>
-                    <h3 class="text-xl font-semibold mb-3">AI Prediction Engine</h3>
-                    <p class="text-gray-400">LSTM neural network trained on 5 years of monsoon data predicts blockage probability with 99.4% accuracy up to 48 hours ahead.</p>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- LIVE MONITORING DASHBOARD -->
-    <section id="dashboard" class="max-w-screen-2xl mx-auto px-8 py-20">
+    <section id="dashboard" class="max-w-screen-xl mx-auto px-8 pt-32 pb-20">
         <div class="flex items-end justify-between mb-8">
             <div>
-                <span class="text-[#00f7ff] text-sm font-medium">LIVE MONITORING DASHBOARD</span>
-                <h2 class="title-font text-5xl">Critical Drains • Mumbai</h2>
+                <span class="text-[#00f7ff] text-sm font-medium">REAL-TIME TELEMETRY</span>
+                <h2 class="title-font text-5xl">Primary Drain Node</h2>
             </div>
-            
-            <div onclick="simulateDataUpdate()" class="flex items-center cursor-pointer text-sm font-medium px-6 py-3 glass neon-border rounded-3xl hover:bg-[#00f7ff] hover:text-[#020C1B]">
-                <i class="fa-solid fa-arrows-rotate mr-2"></i>
-                REFRESH LIVE DATA
+            <div class="text-sm font-mono text-gray-400">
+                Data synced instantly via Firebase RTDB
             </div>
         </div>
         
-        <!-- Drain Cards Grid -->
-        <div id="drains-container" class="grid md:grid-cols-3 gap-8">
-            <!-- Populated via JavaScript -->
-        </div>
-        
-        <!-- Global Metrics Cards -->
-        <div class="mt-16">
-            <h3 class="text-xl font-medium mb-6 flex items-center"><i class="fa-solid fa-gauge-high mr-3 text-[#00f7ff]"></i> CITY-WIDE SENSOR READINGS</h3>
-            <div class="grid grid-cols-2 md:grid-cols-4 gap-6" id="global-metrics">
-                <!-- Populated via JavaScript -->
-            </div>
-        </div>
-    </section>
-
-    <!-- RISK PREDICTION PANEL -->
-    <section id="prediction" class="bg-[#0A2540] py-20">
-        <div class="max-w-screen-2xl mx-auto px-8">
-            <div class="flex justify-between items-baseline mb-10">
-                <div>
-                    <span class="text-[#00f7ff]">AI PREDICTION ENGINE</span>
-                    <h2 class="title-font text-5xl">Flood Risk &amp; Blockage Forecast</h2>
+        <div class="grid md:grid-cols-12 gap-8">
+            <div class="md:col-span-4 dashboard-card glass neon-border rounded-3xl p-8 relative overflow-hidden">
+                <div class="flex justify-between items-start mb-8">
+                    <div>
+                        <span class="font-medium text-2xl">Main Node 1</span>
+                        <p class="text-sm text-gray-400">ESP32 IoT Sensor Array</p>
+                    </div>
+                    <span id="drain-status-badge" class="bg-gray-500 text-white text-xs font-bold px-5 h-7 rounded-3xl flex items-center">WAITING</span>
                 </div>
-                <div class="text-sm text-gray-400 font-mono">NEXT 48 HOURS • UPDATED 2 MINUTES AGO</div>
-            </div>
-            
-            <div class="grid md:grid-cols-12 gap-8">
-                <!-- Flood Risk Gauge -->
-                <div class="md:col-span-5 glass neon-border rounded-3xl p-10">
-                    <h3 class="text-xl font-medium mb-8 flex items-center justify-between">
-                        OVERALL FLOOD RISK SCORE
-                        <span id="flood-risk-text" class="text-4xl font-mono font-semibold text-[#00f7ff]">42</span>
-                    </h3>
-                    
-                    <div class="relative flex justify-center">
-                        <canvas id="floodGauge" width="300" height="300"></canvas>
-                        <div class="absolute inset-0 flex flex-col items-center justify-center pt-6">
-                            <div id="flood-risk-label" class="text-xs font-medium uppercase tracking-widest text-emerald-400">LOW RISK</div>
-                            <div class="text-[10px] text-gray-400 mt-8">Predicted water level rise in next 24 hrs</div>
-                            <div class="text-5xl font-mono font-semibold text-white mt-1" id="predicted-rise">+1.8 m</div>
+                
+                <div class="text-xs text-gray-400 mb-2">CURRENT BLOCKAGE PERCENTAGE</div>
+                <div class="flex items-baseline mb-8">
+                    <span id="ui-blockage-text" class="text-8xl font-mono font-semibold text-[#00f7ff]">--</span>
+                    <span class="ml-2 text-2xl font-medium text-gray-400">%</span>
+                </div>
+
+                <div class="space-y-6 relative z-10">
+                    <div>
+                        <div class="flex justify-between text-sm mb-2">
+                            <span class="flex items-center"><i class="fa-solid fa-water mr-2 w-4"></i>Water Flow</span>
+                            <span id="ui-flow-val" class="font-mono">-- L/min</span>
                         </div>
-                    </div>
-                </div>
-                
-                <!-- Blockage Prediction Chart -->
-                <div class="md:col-span-7 glass neon-border rounded-3xl p-10">
-                    <h3 class="text-xl font-medium mb-6">48-Hour Blockage Prediction Trend</h3>
-                    <canvas id="predictionChart" height="260"></canvas>
-                </div>
-                
-                <!-- Drain-specific predictions -->
-                <div class="md:col-span-12 mt-6 grid grid-cols-3 gap-6">
-                    <div onclick="selectDrainForPrediction(1)" class="glass neon-border rounded-3xl p-6 cursor-pointer">
-                        <div class="flex justify-between"><span class="font-medium">Andheri Drain-1</span><span class="text-emerald-400">SAFE</span></div>
-                        <div class="text-4xl font-mono mt-2 mb-1">18%</div>
-                        <div class="text-xs text-gray-400">Blockage predicted in 48 hrs</div>
-                        <div class="h-2 bg-gray-700 mt-6 rounded-3xl"><div class="progress-bar h-2 bg-emerald-400 w-[18%] rounded-3xl"></div></div>
-                    </div>
-                    <div onclick="selectDrainForPrediction(2)" class="glass neon-border rounded-3xl p-6 cursor-pointer">
-                        <div class="flex justify-between"><span class="font-medium">Bandra Drain-2</span><span class="text-yellow-400">WARNING</span></div>
-                        <div class="text-4xl font-mono mt-2 mb-1">64%</div>
-                        <div class="text-xs text-gray-400">Blockage predicted in 48 hrs</div>
-                        <div class="h-2 bg-gray-700 mt-6 rounded-3xl"><div class="progress-bar h-2 bg-yellow-400 w-[64%] rounded-3xl"></div></div>
-                    </div>
-                    <div onclick="selectDrainForPrediction(3)" class="glass neon-border rounded-3xl p-6 cursor-pointer">
-                        <div class="flex justify-between"><span class="font-medium">Kurla Drain-3</span><span class="text-red-400">DANGER</span></div>
-                        <div class="text-4xl font-mono mt-2 mb-1">91%</div>
-                        <div class="text-xs text-gray-400">Blockage predicted in 48 hrs</div>
-                        <div class="h-2 bg-gray-700 mt-6 rounded-3xl"><div class="progress-bar h-2 bg-red-400 w-[91%] rounded-3xl"></div></div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- ALERT SYSTEM -->
-    <section id="alerts" class="max-w-screen-2xl mx-auto px-8 py-20">
-        <div class="flex justify-between items-baseline mb-8">
-            <h2 class="title-font text-5xl">Active Alert System</h2>
-            <div class="flex items-center text-sm gap-x-2">
-                <div class="px-5 py-2 rounded-3xl flex items-center bg-emerald-400/10 text-emerald-400">
-                    <i class="fa-solid fa-check-circle mr-2"></i> SAFE
-                </div>
-                <div class="px-5 py-2 rounded-3xl flex items-center bg-yellow-400/10 text-yellow-400">
-                    <i class="fa-solid fa-triangle-exclamation mr-2"></i> WARNING
-                </div>
-                <div id="danger-badge" onclick="triggerFlashAlert()" class="px-5 py-2 rounded-3xl flex items-center bg-red-500 text-white cursor-pointer alert-flash">
-                    <i class="fa-solid fa-bell mr-2"></i> DANGER (3)
-                </div>
-            </div>
-        </div>
-        
-        <div id="alerts-list" class="space-y-4">
-            <!-- Populated by JS -->
-        </div>
-    </section>
-
-    <!-- SYSTEM ARCHITECTURE -->
-    <section id="architecture" class="bg-[#0A2540] py-20">
-        <div class="max-w-screen-2xl mx-auto px-8">
-            <div class="text-center mb-12">
-                <span class="text-[#00f7ff]">END-TO-END SYSTEM</span>
-                <h2 class="title-font text-5xl">How the Smart Drainage System Works</h2>
-            </div>
-            
-            <div class="flex flex-col lg:flex-row items-center justify-center gap-6 relative">
-                <!-- Sensor Layer -->
-                <div class="glass neon-border rounded-3xl p-8 text-center min-w-[220px]">
-                    <div class="text-4xl mb-4">📡</div>
-                    <div class="uppercase text-xs tracking-widest mb-1">Layer 1</div>
-                    <h4 class="font-semibold text-xl">IoT Sensors in Drains</h4>
-                    <p class="text-sm text-gray-400 mt-3">Water flow • Moisture • Methane • Camera</p>
-                    <div class="text-[#00f7ff] text-xs mt-6">Every 8 seconds</div>
-                </div>
-                
-                <div class="hidden lg:block text-5xl text-[#00f7ff] rotate-90 lg:rotate-0">→</div>
-                
-                <!-- Transmission -->
-                <div class="glass neon-border rounded-3xl p-8 text-center min-w-[220px]">
-                    <div class="text-4xl mb-4">📶</div>
-                    <div class="uppercase text-xs tracking-widest mb-1">Layer 2</div>
-                    <h4 class="font-semibold text-xl">LoRaWAN + 5G</h4>
-                    <p class="text-sm text-gray-400 mt-3">Edge gateway → Cloud uplink</p>
-                    <div class="text-[#00f7ff] text-xs mt-6">Firebase Realtime Database</div>
-                </div>
-                
-                <div class="hidden lg:block text-5xl text-[#00f7ff] rotate-90 lg:rotate-0">→</div>
-                
-                <!-- Processing -->
-                <div class="glass neon-border rounded-3xl p-8 text-center min-w-[220px]">
-                    <div class="text-4xl mb-4">🔥</div>
-                    <div class="uppercase text-xs tracking-widest mb-1">Layer 3</div>
-                    <h4 class="font-semibold text-xl">Firebase + ML Engine</h4>
-                    <p class="text-sm text-gray-400 mt-3">LSTM model predicts blockage in real-time</p>
-                    <div class="flex justify-center gap-x-4 mt-8">
-                        <div class="text-xs px-4 py-1 bg-white/10 rounded-3xl">TensorFlow.js</div>
-                        <div class="text-xs px-4 py-1 bg-white/10 rounded-3xl">Firebase ML</div>
-                    </div>
-                </div>
-                
-                <div class="hidden lg:block text-5xl text-[#00f7ff] rotate-90 lg:rotate-0">→</div>
-                
-                <!-- Dashboard + Alerts -->
-                <div class="glass neon-border rounded-3xl p-8 text-center min-w-[220px]">
-                    <div class="text-4xl mb-4">📲</div>
-                    <div class="uppercase text-xs tracking-widest mb-1">Layer 4</div>
-                    <h4 class="font-semibold text-xl">Municipal Dashboard + SMS/Email Alerts</h4>
-                    <p class="text-sm text-gray-400 mt-3">Instant notifications to field teams</p>
-                    <div class="mt-8 flex justify-center text-[#00f7ff]">
-                        <i class="fa-solid fa-mobile-screen-button text-3xl"></i>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- Firebase placeholder comment -->
-            <div class="mt-12 text-center text-xs font-mono text-gray-400">
-                <!-- Firebase Realtime Database Integration Placeholder -->
-                <!-- 
-                const firebaseConfig = {
-                    apiKey: "YOUR_API_KEY",
-                    authDomain: "smartdrain-mumbai.firebaseapp.com",
-                    databaseURL: "https://smartdrain-mumbai-default-rtdb.firebaseio.com",
-                    projectId: "smartdrain-mumbai"
-                };
-                firebase.initializeApp(firebaseConfig);
-                const dbRef = firebase.database().ref("drains");
-                dbRef.on("value", (snapshot) => { updateAllDrains(snapshot.val()); });
-                -->
-                <span class="text-[#00f7ff]">Firebase ready for production deployment →</span>
-            </div>
-        </div>
-    </section>
-
-    <!-- ABOUT TEAM -->
-    <section class="max-w-screen-2xl mx-auto px-8 py-20">
-        <div class="text-center mb-12">
-            <span class="text-[#00f7ff]">MEET THE TEAM</span>
-            <h2 class="title-font text-5xl">Building a flood-free Mumbai</h2>
-        </div>
-        
-        <div class="grid md:grid-cols-4 gap-8">
-            <div class="glass neon-border rounded-3xl p-6 text-center">
-                <div class="w-20 h-20 mx-auto bg-gradient-to-br from-[#00f7ff] to-cyan-300 text-[#020C1B] rounded-3xl flex items-center justify-center text-4xl mb-6 shadow-inner">👩‍🔬</div>
-                <h4 class="font-semibold">Dr. Anjali Desai</h4>
-                <p class="text-[#00f7ff] text-sm">CTO – Smart City Division, MCGM</p>
-                <p class="text-xs text-gray-400 mt-4">Led deployment of 142 IoT nodes across Mumbai’s drainage network</p>
-            </div>
-            
-            <div class="glass neon-border rounded-3xl p-6 text-center">
-                <div class="w-20 h-20 mx-auto bg-gradient-to-br from-[#00f7ff] to-cyan-300 text-[#020C1B] rounded-3xl flex items-center justify-center text-4xl mb-6 shadow-inner">🧔‍♂️</div>
-                <h4 class="font-semibold">Vikram Rao</h4>
-                <p class="text-[#00f7ff] text-sm">Principal AI Scientist</p>
-                <p class="text-xs text-gray-400 mt-4">Developed LSTM model achieving 99.4% flood prediction accuracy</p>
-            </div>
-            
-            <div class="glass neon-border rounded-3xl p-6 text-center">
-                <div class="w-20 h-20 mx-auto bg-gradient-to-br from-[#00f7ff] to-cyan-300 text-[#020C1B] rounded-3xl flex items-center justify-center text-4xl mb-6 shadow-inner">👨‍💻</div>
-                <h4 class="font-semibold">Rajesh Patel</h4>
-                <p class="text-[#00f7ff] text-sm">IoT Infrastructure Lead</p>
-                <p class="text-xs text-gray-400 mt-4">Firebase + LoRaWAN architect. 24×7 system uptime since launch</p>
-            </div>
-            
-            <div class="glass neon-border rounded-3xl p-6 text-center">
-                <div class="w-20 h-20 mx-auto bg-gradient-to-br from-[#00f7ff] to-cyan-300 text-[#020C1B] rounded-3xl flex items-center justify-center text-4xl mb-6 shadow-inner">👩🏻‍💼</div>
-                <h4 class="font-semibold">Meera Khan</h4>
-                <p class="text-[#00f7ff] text-sm">Alert &amp; Response Manager</p>
-                <p class="text-xs text-gray-400 mt-4">Coordinates field teams during monsoon alerts</p>
-            </div>
-        </div>
-    </section>
-
-    <!-- FOOTER -->
-    <footer class="bg-black py-12 border-t border-[#00f7ff]/10">
-        <div class="max-w-screen-2xl mx-auto px-8 text-center text-xs text-gray-400">
-            <p>© 2026 Municipal Corporation of Greater Mumbai • SmartDrain AI Dashboard</p>
-            <p class="mt-2">Built as a fully functional single-file prototype. Ready to deploy on GitHub Pages.</p>
-            <p class="mt-1">Firebase Realtime Database + Chart.js + Tailwind • All data is simulated for demo purposes</p>
-            <div class="flex justify-center gap-x-6 mt-8 text-[#00f7ff]">
-                <a href="#" class="hover:underline">Documentation</a>
-                <a href="#" class="hover:underline">API Reference</a>
-                <a href="#" class="hover:underline">Sensor Calibration Guide</a>
-                <a href="#" class="hover:underline">Contact MCGM Control Room</a>
-            </div>
-        </div>
-    </footer>
-
-    <!-- FIREBASE MODAL -->
-    <div onclick="if(event.target.id === 'firebaseModal')hideFirebaseModal()" id="firebaseModal" class="hidden fixed inset-0 bg-black/70 z-[9999] flex items-center justify-center">
-        <div onclick="event.stopImmediatePropagation()" class="glass neon-border rounded-3xl max-w-lg w-full mx-4 p-8">
-            <h3 class="text-2xl mb-2">Firebase Realtime Database Integration</h3>
-            <p class="text-sm text-gray-400 mb-8">Add the following code to connect live sensor data from your IoT devices:</p>
-            
-            <pre class="bg-[#020C1B] p-6 rounded-2xl text-xs font-mono text-[#00f7ff] overflow-auto mb-8"><code>import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
-
-const firebaseConfig = {
-    apiKey: "AIzaSy...YOUR_KEY",
-    databaseURL: "https://smartdrain-mumbai-default-rtdb.firebaseio.com"
-};
-
-const app = initializeApp(firebaseConfig);
-const db = getDatabase(app);
-
-// Listen to drains node in realtime
-const drainsRef = ref(db, "drains");
-onValue(drainsRef, (snapshot) =&gt; {
-    const data = snapshot.val();
-    console.log("🔥 Realtime drain data received:", data);
-    // updateAllDrains(data);
-});</code></pre>
-            
-            <div class="flex justify-end">
-                <button onclick="hideFirebaseModal()" class="px-8 py-3 text-sm font-medium border border-white/30 hover:border-white rounded-3xl">CLOSE &amp; CONTINUE DEMO</button>
-            </div>
-            <p class="text-[10px] text-center text-gray-500 mt-6">This dashboard already contains mock data that updates every 6 seconds.</p>
-        </div>
-    </div>
-
-    <script>
-        /**
-         * MAIN APPLICATION SCRIPT
-         * Smart Drainage Blockage Prediction & Alert System
-         * Single-file, production-ready demo for Mumbai Smart City
-         * Features:
-         * - Tailwind + Glassmorphism + Neon futuristic UI
-         * - Live updating drain cards with animated progress bars
-         * - Chart.js gauges & prediction graphs
-         * - Firebase placeholder code (fully commented)
-         * - Responsive + smooth animations
-         * - Ready for GitHub Pages
-         */
-        
-        // Tailwind initialization
-        function initializeTailwind() {
-            return {
-                config(userConfig = {}) {
-                    return {
-                        content: [],
-                        theme: {
-                            extend: {
-                                colors: {
-                                    neon: '#00f7ff'
-                                }
-                            }
-                        },
-                        plugins: [],
-                        ...userConfig,
-                    }
-                },
-                theme: {
-                    extend: {},
-                }
-            }
-        }
-        
-        // Mock drain data
-        let drainsData = [
-            {
-                id: 1,
-                name: "Drain 1",
-                location: "Andheri (West)",
-                status: "safe",
-                riskScore: 14,
-                metrics: {
-                    waterFlow: 82,
-                    moisture: 34,
-                    gasLevel: 12,
-                    blockage: 11
-                }
-            },
-            {
-                id: 2,
-                name: "Drain 2",
-                location: "Bandra (East)",
-                status: "warning",
-                riskScore: 57,
-                metrics: {
-                    waterFlow: 41,
-                    moisture: 78,
-                    gasLevel: 44,
-                    blockage: 63
-                }
-            },
-            {
-                id: 3,
-                name: "Drain 3",
-                location: "Kurla (Central)",
-                status: "danger",
-                riskScore: 89,
-                metrics: {
-                    waterFlow: 19,
-                    moisture: 92,
-                    gasLevel: 71,
-                    blockage: 87
-                }
-            }
-        ]
-        
-        // Global metrics (averages)
-        let globalMetrics = {
-            waterFlow: 47,
-            moisture: 68,
-            gasLevel: 42,
-            blockage: 54
-        }
-        
-        // Active alerts
-        let activeAlerts = [
-            {
-                id: 1,
-                type: "danger",
-                message: "Kurla Drain-3: Blockage risk 87% – Immediate action required",
-                time: "3 min ago"
-            },
-            {
-                id: 2,
-                type: "warning",
-                message: "Bandra Drain-2: Moisture level critical. Flow reduced by 59%",
-                time: "17 min ago"
-            }
-        ]
-        
-        // Render drain cards
-        function renderDrains() {
-            const container = document.getElementById('drains-container')
-            container.innerHTML = ''
-            
-            drainsData.forEach(drain => {
-                let statusColor = ''
-                let statusText = ''
-                
-                if (drain.status === 'safe') {
-                    statusColor = 'bg-emerald-400 text-emerald-950'
-                    statusText = 'SAFE'
-                } else if (drain.status === 'warning') {
-                    statusColor = 'bg-yellow-400 text-yellow-950'
-                    statusText = 'WARNING'
-                } else {
-                    statusColor = 'bg-red-500 text-white'
-                    statusText = 'DANGER'
-                }
-                
-                const cardHTML = `
-                <div onclick="viewDrainDetails(${drain.id})" class="dashboard-card glass neon-border rounded-3xl p-6 cursor-pointer">
-                    <div class="flex justify-between items-start">
-                        <div>
-                            <span class="font-medium text-lg">${drain.name}</span>
-                            <p class="text-sm text-gray-400">${drain.location}</p>
+                        <div class="h-3 bg-[#112233] rounded-3xl overflow-hidden">
+                            <div id="bar-flow" class="progress-bar h-3 bg-[#00f7ff] w-0"></div>
                         </div>
-                        <span class="${statusColor} text-xs font-bold px-5 h-7 rounded-3xl flex items-center">${statusText}</span>
-                    </div>
-                    
-                    <div class="flex items-baseline mt-8 mb-6">
-                        <span class="text-7xl font-mono font-semibold">${drain.riskScore}</span>
-                        <span class="ml-2 text-sm font-medium text-gray-400">RISK SCORE</span>
-                    </div>
-                    
-                    <!-- Metrics -->
-                    <div class="space-y-6">
-                        <div>
-                            <div class="flex justify-between text-xs mb-1.5">
-                                <span class="flex items-center"><i class="fa-solid fa-water mr-1"></i>Water Flow</span>
-                                <span class="font-mono">${drain.metrics.waterFlow}%</span>
-                            </div>
-                            <div class="h-2.5 bg-[#112233] rounded-3xl overflow-hidden">
-                                <div class="progress-bar h-2.5 bg-[#00f7ff]" style="width: ${drain.metrics.waterFlow}%"></div>
-                            </div>
-                        </div>
-                        <div>
-                            <div class="flex justify-between text-xs mb-1.5">
-                                <span class="flex items-center"><i class="fa-solid fa-droplet mr-1"></i>Moisture</span>
-                                <span class="font-mono">${drain.metrics.moisture}%</span>
-                            </div>
-                            <div class="h-2.5 bg-[#112233] rounded-3xl overflow-hidden">
-                                <div class="progress-bar h-2.5 bg-[#00ff9f]" style="width: ${drain.metrics.moisture}%"></div>
-                            </div>
-                        </div>
-                        <div>
-                            <div class="flex justify-between text-xs mb-1.5">
-                                <span class="flex items-center"><i class="fa-solid fa-gas-pump mr-1"></i>Gas Level</span>
-                                <span class="font-mono">${drain.metrics.gasLevel} ppm</span>
-                            </div>
-                            <div class="h-2.5 bg-[#112233] rounded-3xl overflow-hidden">
-                                <div class="progress-bar h-2.5 bg-[#ffaa00]" style="width: ${drain.metrics.gasLevel * 1.3}%"></div>
-                            </div>
-                        </div>
-                        <div>
-                            <div class="flex justify-between text-xs mb-1.5">
-                                <span class="flex items-center"><i class="fa-solid fa-plug-circle-xmark mr-1"></i>Blockage</span>
-                                <span class="font-mono">${drain.metrics.blockage}%</span>
-                            </div>
-                            <div class="h-2.5 bg-[#112233] rounded-3xl overflow-hidden">
-                                <div class="progress-bar h-2.5 bg-[#ff3355]" style="width: ${drain.metrics.blockage}%"></div>
-                            </div>
-                        </div>
-                    </div>
-                </div>`
-                
-                container.innerHTML += cardHTML
-            })
-        }
-        
-        // Render global metrics
-        function renderGlobalMetrics() {
-            const container = document.getElementById('global-metrics')
-            container.innerHTML = `
-            <div class="glass neon-border rounded-3xl p-6">
-                <div class="flex justify-between"><span class="text-sm flex items-center"><i class="fa-solid fa-water mr-2"></i>Water Flow</span><span class="font-mono text-3xl">${globalMetrics.waterFlow}%</span></div>
-                <div class="mt-6 h-3 bg-[#112233] rounded-3xl"><div class="h-3 bg-[#00f7ff] rounded-3xl" style="width:${globalMetrics.waterFlow}%"></div></div>
-            </div>
-            <div class="glass neon-border rounded-3xl p-6">
-                <div class="flex justify-between"><span class="text-sm flex items-center"><i class="fa-solid fa-droplet mr-2"></i>Moisture</span><span class="font-mono text-3xl">${globalMetrics.moisture}%</span></div>
-                <div class="mt-6 h-3 bg-[#112233] rounded-3xl"><div class="h-3 bg-[#00ff9f] rounded-3xl" style="width:${globalMetrics.moisture}%"></div></div>
-            </div>
-            <div class="glass neon-border rounded-3xl p-6">
-                <div class="flex justify-between"><span class="text-sm flex items-center"><i class="fa-solid fa-gas-pump mr-2"></i>Gas Level</span><span class="font-mono text-3xl">${globalMetrics.gasLevel} ppm</span></div>
-                <div class="mt-6 h-3 bg-[#112233] rounded-3xl"><div class="h-3 bg-[#ffaa00] rounded-3xl" style="width:${Math.min(globalMetrics.gasLevel * 1.4, 100)}%"></div></div>
-            </div>
-            <div class="glass neon-border rounded-3xl p-6">
-                <div class="flex justify-between"><span class="text-sm flex items-center"><i class="fa-solid fa-plug-circle-xmark mr-2"></i>Blockage %</span><span class="font-mono text-3xl">${globalMetrics.blockage}%</span></div>
-                <div class="mt-6 h-3 bg-[#112233] rounded-3xl"><div class="h-3 bg-[#ff3355] rounded-3xl" style="width:${globalMetrics.blockage}%"></div></div>
-            </div>`
-        }
-        
-        // Render alerts
-        function renderAlerts() {
-            const container = document.getElementById('alerts-list')
-            container.innerHTML = ''
-            
-            activeAlerts.forEach(alert => {
-                let icon = alert.type === 'danger' ? '🔴' : '🟡'
-                let bg = alert.type === 'danger' ? 'bg-red-500/10 border-red-400' : 'bg-yellow-400/10 border-yellow-400'
-                
-                const alertHTML = `
-                <div class="flex items-center gap-x-4 ${bg} border glass rounded-3xl px-8 py-5">
-                    <div class="text-3xl">${icon}</div>
-                    <div class="flex-1">
-                        <p class="font-medium">${alert.message}</p>
-                        <p class="text-xs text-gray-400">${alert.time}</p>
-                    </div>
-                    <button onclick="dismissAlert(${alert.id});event.stopImmediatePropagation()" class="text-xs uppercase font-medium px-6 py-3 border border-white/30 rounded-3xl hover:bg-white hover:text-black">DISMISS</button>
-                </div>`
-                container.innerHTML += alertHTML
-            })
-            
-            // If no alerts
-            if (activeAlerts.length === 0) {
-                container.innerHTML = `<div class="glass rounded-3xl p-12 text-center text-gray-400">All systems nominal. No active alerts.</div>`
-            }
-        }
-        
-        // Simulate live data update
-        function simulateDataUpdate() {
-            // Random walk on each drain
-            drainsData.forEach(drain => {
-                drain.metrics.waterFlow = Math.max(5, Math.min(95, drain.metrics.waterFlow + (Math.random() * 14 - 7)))
-                drain.metrics.moisture = Math.max(10, Math.min(98, drain.metrics.moisture + (Math.random() * 12 - 6)))
-                drain.metrics.gasLevel = Math.max(5, Math.min(85, drain.metrics.gasLevel + (Math.random() * 18 - 9)))
-                drain.metrics.blockage = Math.max(3, Math.min(96, drain.metrics.blockage + (Math.random() * 9 - 4)))
-                
-                // Recalculate risk score
-                const risk = Math.round(
-                    drain.metrics.blockage * 0.55 +
-                    drain.metrics.moisture * 0.2 +
-                    drain.metrics.gasLevel * 0.15 +
-                    (100 - drain.metrics.waterFlow) * 0.1
-                )
-                drain.riskScore = Math.min(99, risk)
-                
-                // Update status
-                if (drain.riskScore > 75) drain.status = 'danger'
-                else if (drain.riskScore > 45) drain.status = 'warning'
-                else drain.status = 'safe'
-            })
-            
-            // Update global metrics
-            globalMetrics.waterFlow = Math.round(drainsData.reduce((a, b) => a + b.metrics.waterFlow, 0) / 3)
-            globalMetrics.moisture = Math.round(drainsData.reduce((a, b) => a + b.metrics.moisture, 0) / 3)
-            globalMetrics.gasLevel = Math.round(drainsData.reduce((a, b) => a + b.metrics.gasLevel, 0) / 3)
-            globalMetrics.blockage = Math.round(drainsData.reduce((a, b) => a + b.metrics.blockage, 0) / 3)
-            
-            // Re-render everything
-            renderDrains()
-            renderGlobalMetrics()
-            
-            // Occasionally add a new alert
-            if (Math.random() > 0.7) {
-                activeAlerts.unshift({
-                    id: Date.now(),
-                    type: Math.random() > 0.5 ? 'danger' : 'warning',
-                    message: 'New high-risk event detected in ' + drainsData[Math.floor(Math.random()*3)].location,
-                    time: 'just now'
-                })
-                if (activeAlerts.length > 4) activeAlerts.pop()
-                renderAlerts()
-            }
-            
-            // Toast animation
-            const toast = document.createElement('div')
-            toast.style.cssText = 'position:fixed; bottom:24px; right:24px; background:#00f7ff; color:#020C1B; padding:16px 24px; border-radius:9999px; font-weight:600; box-shadow:0 0 20px #00f7ff;'
-            toast.innerHTML = '✅ Live data updated from Firebase'
-            document.body.appendChild(toast)
-            setTimeout(() => toast.remove(), 2800)
-        }
-        
-        // View single drain details (modal simulation)
-        function viewDrainDetails(id) {
-            const drain = drainsData.find(d => d.id === id)
-            if (!drain) return
-            
-            const modal = document.createElement('div')
-            modal.style.cssText = 'position:fixed;inset:0;background:rgba(2,12,27,0.9);z-index:99999;display:flex;align-items:center;justify-content:center;'
-            modal.innerHTML = `
-            <div onclick="event.stopImmediatePropagation()" class="glass neon-border rounded-3xl max-w-2xl w-11/12 p-10">
-                <div class="flex justify-between items-center">
-                    <div class="flex items-center gap-x-4">
-                        <span class="text-4xl">🚧</span>
-                        <div>
-                            <h2 class="text-3xl">${drain.name} – ${drain.location}</h2>
-                            <p class="text-[#00f7ff] text-xl font-mono">Risk Score: ${drain.riskScore}</p>
-                        </div>
-                    </div>
-                    <button onclick="this.closest('.glass').parentElement.remove()" class="text-4xl leading-none">×</button>
-                </div>
-                
-                <div class="mt-12 grid grid-cols-2 gap-8">
-                    <div class="text-center">
-                        <div class="text-xs mb-3">CURRENT STATUS</div>
-                        <div class="text-8xl mb-4">${drain.riskScore > 75 ? '🔴' : drain.riskScore > 45 ? '🟡' : '🟢'}</div>
-                        <p class="uppercase text-2xl tracking-widest">${drain.status}</p>
                     </div>
                     <div>
-                        <h5 class="font-semibold mb-6">LIVE SENSOR READINGS</h5>
-                        <div class="space-y-8">
-                            <div class="flex justify-between text-sm"><span>Water Flow Rate</span><span class="font-mono">${drain.metrics.waterFlow}%</span></div>
-                            <div class="flex justify-between text-sm"><span>Soil Moisture</span><span class="font-mono">${drain.metrics.moisture}%</span></div>
-                            <div class="flex justify-between text-sm"><span>Methane (Gas)</span><span class="font-mono">${drain.metrics.gasLevel} ppm</span></div>
-                            <div class="flex justify-between text-sm"><span>Blockage Level</span><span class="font-mono">${drain.metrics.blockage}%</span></div>
+                        <div class="flex justify-between text-sm mb-2">
+                            <span class="flex items-center"><i class="fa-solid fa-droplet mr-2 w-4"></i>Soil Moisture</span>
+                            <span id="ui-moisture-val" class="font-mono">--%</span>
+                        </div>
+                        <div class="h-3 bg-[#112233] rounded-3xl overflow-hidden">
+                            <div id="bar-moisture" class="progress-bar h-3 bg-[#00ff9f] w-0"></div>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="flex justify-between text-sm mb-2">
+                            <span class="flex items-center"><i class="fa-solid fa-gas-pump mr-2 w-4"></i>Methane (Gas)</span>
+                            <span id="ui-gas-val" class="font-mono">--%</span>
+                        </div>
+                        <div class="h-3 bg-[#112233] rounded-3xl overflow-hidden">
+                            <div id="bar-gas" class="progress-bar h-3 bg-[#ffaa00] w-0"></div>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="flex justify-between text-sm mb-2">
+                            <span class="flex items-center"><i class="fa-solid fa-ruler mr-2 w-4"></i>Water Level (Distance)</span>
+                            <span id="ui-distance-val" class="font-mono">-- cm</span>
+                        </div>
+                        <div class="h-3 bg-[#112233] rounded-3xl overflow-hidden">
+                            <div id="bar-distance" class="progress-bar h-3 bg-[#a020f0] w-0"></div>
                         </div>
                     </div>
                 </div>
-                
-                <div class="mt-10 text-center text-xs text-gray-400">Data synced from Firebase • Last updated moments ago</div>
-            </div>`
-            document.body.appendChild(modal)
+            </div>
+
+            <div id="prediction" class="md:col-span-8 grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div class="glass neon-border rounded-3xl p-8 flex flex-col items-center justify-center">
+                    <h3 class="text-xl font-medium w-full text-left mb-4">Live Threat Gauge</h3>
+                    <div class="relative flex justify-center w-full max-w-[250px]">
+                        <canvas id="floodGauge" width="250" height="250"></canvas>
+                        <div class="absolute inset-0 flex flex-col items-center justify-center pt-6">
+                            <div id="flood-risk-label" class="text-sm font-medium uppercase tracking-widest text-gray-400">WAITING...</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="glass neon-border rounded-3xl p-8 flex flex-col justify-between">
+                    <div>
+                        <h3 class="text-xl font-medium mb-6">System Status</h3>
+                        <div id="alert-panel" class="p-6 rounded-2xl bg-gray-800/50 border border-gray-600 text-gray-300">
+                            <div class="text-3xl mb-4">📡</div>
+                            <h4 class="font-bold text-lg mb-2">Awaiting Sensor Data</h4>
+                            <p class="text-sm">Power on your ESP32 to establish the connection.</p>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-8 pt-6 border-t border-white/10">
+                        <div class="text-xs text-gray-400 font-mono mb-2">LAST FIREBASE SYNC:</div>
+                        <div id="sync-time" class="text-sm text-[#00f7ff] font-mono">--:--:--</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+
+        // Your specific Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyCyvHXBBQ_mQ5hevFGWHozMrM_Nnm_hbGM",
+            databaseURL: "https://smartdrainageblockagesystem-default-rtdb.asia-southeast1.firebasedatabase.app"
+        };
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+        let floodGaugeChart = null;
+
+        // Make scroll function globally available
+        window.smoothScrollTo = function(section) {
+            const el = document.getElementById(section);
+            if (el) el.scrollIntoView({ behavior: 'smooth' });
         }
-        
-        // Chart initialization
-        let floodGaugeChart = null
-        let predictionLineChart = null
-        
+
         function initCharts() {
-            // Flood Risk Gauge
-            const gaugeCtx = document.getElementById('floodGauge')
+            const gaugeCtx = document.getElementById('floodGauge');
             floodGaugeChart = new Chart(gaugeCtx, {
                 type: 'doughnut',
                 data: {
                     datasets: [{
-                        data: [42, 58],
-                        backgroundColor: ['#00f7ff', '#112233'],
+                        data: [0, 100],
+                        backgroundColor: ['#334455', '#112233'],
                         borderWidth: 0,
                         cutout: '82%'
                     }]
@@ -992,164 +226,101 @@ onValue(drainsRef, (snapshot) =&gt; {
                 options: {
                     rotation: -90,
                     circumference: 180,
-                    plugins: {
-                        legend: { display: false },
-                        tooltip: { enabled: false }
-                    }
+                    plugins: { legend: { display: false }, tooltip: { enabled: false } },
+                    animation: { animateRotate: true, animateScale: false }
                 }
-            })
-            
-            // Prediction line chart
-            const lineCtx = document.getElementById('predictionChart')
-            const labels = ['Now', '+6h', '+12h', '+18h', '+24h', '+30h', '+36h', '+42h', '+48h']
-            const blockageData = [54, 58, 67, 71, 79, 84, 88, 91, 93]
-            const riskData = [42, 45, 51, 55, 62, 68, 74, 81, 87]
-            
-            predictionLineChart = new Chart(lineCtx, {
-                type: 'line',
-                data: {
-                    labels: labels,
-                    datasets: [
-                        {
-                            label: 'Blockage %',
-                            data: blockageData,
-                            borderColor: '#ff3355',
-                            tension: 0.4,
-                            borderWidth: 3,
-                            pointRadius: 0
-                        },
-                        {
-                            label: 'Flood Risk Score',
-                            data: riskData,
-                            borderColor: '#00f7ff',
-                            tension: 0.4,
-                            borderWidth: 3,
-                            pointRadius: 0
-                        }
-                    ]
-                },
-                options: {
-                    plugins: { legend: { display: true, position: 'top', labels: { color: '#ddd', boxWidth: 12 } } },
-                    scales: {
-                        y: { grid: { color: '#223344' }, ticks: { color: '#aaa', font: { size: 11 } } },
-                        x: { grid: { color: '#223344' }, ticks: { color: '#aaa', font: { size: 11 } } }
-                    }
-                }
-            })
+            });
         }
-        
-        // Update flood gauge
-        function updateFloodGauge(newRisk) {
-            if (!floodGaugeChart) return
-            const safe = 100 - newRisk
-            floodGaugeChart.data.datasets[0].data = [newRisk, safe]
-            floodGaugeChart.update('none')
+
+        function updateDashboard(data) {
+            // Extract ESP32 Data
+            const flow = data.flow || 0;
+            const moisture = data.moisture || 0;
+            const gas = data.gas || 0;
+            const distance = data.distance || 0;
+            const blockage = data.blockage || 0;
+
+            // Update Text Values
+            document.getElementById('ui-blockage-text').textContent = blockage;
+            document.getElementById('ui-flow-val').textContent = flow.toFixed(1) + " L/min";
+            document.getElementById('ui-moisture-val').textContent = moisture + "%";
+            document.getElementById('ui-gas-val').textContent = gas + "%";
+            document.getElementById('ui-distance-val').textContent = distance.toFixed(1) + " cm";
+
+            // Update Progress Bars
+            // Calculate a percentage for flow assuming max flow is around 30 L/min for bar visualization
+            const flowPercent = Math.min((flow / 30) * 100, 100); 
+            // Calculate a percentage for distance assuming max pipe depth is 20cm
+            const distancePercent = Math.max(0, 100 - (distance / 20 * 100)); 
+
+            document.getElementById('bar-flow').style.width = flowPercent + "%";
+            document.getElementById('bar-moisture').style.width = moisture + "%";
+            document.getElementById('bar-gas').style.width = gas + "%";
+            document.getElementById('bar-distance').style.width = distancePercent + "%";
+
+            // Update Gauge Chart
+            const safe = 100 - blockage;
+            let chartColor = '#00f7ff'; // Default Cyan
+            let statusText = 'SAFE';
+            let badgeClass = 'bg-emerald-400 text-emerald-950';
             
-            document.getElementById('flood-risk-text').textContent = newRisk
-            const labelEl = document.getElementById('flood-risk-label')
-            
-            if (newRisk > 75) {
-                labelEl.className = 'text-xs font-medium uppercase tracking-widest text-red-400'
-                labelEl.textContent = 'CRITICAL'
-            } else if (newRisk > 45) {
-                labelEl.className = 'text-xs font-medium uppercase tracking-widest text-yellow-400'
-                labelEl.textContent = 'ELEVATED'
+            const alertPanel = document.getElementById('alert-panel');
+
+            if (blockage > 85) {
+                chartColor = '#ff3355'; // Red
+                statusText = 'DANGER';
+                badgeClass = 'bg-red-500 text-white alert-flash';
+                alertPanel.className = 'p-6 rounded-2xl bg-red-500/20 border border-red-500 text-white';
+                alertPanel.innerHTML = '<div class="text-3xl mb-4">🚨</div><h4 class="font-bold text-lg mb-2">CRITICAL BLOCKAGE</h4><p class="text-sm text-red-200">Immediate clearing required. Flow heavily restricted.</p>';
+            } else if (blockage > 50) {
+                chartColor = '#ffaa00'; // Yellow
+                statusText = 'WARNING';
+                badgeClass = 'bg-yellow-400 text-yellow-950';
+                alertPanel.className = 'p-6 rounded-2xl bg-yellow-400/20 border border-yellow-400 text-white';
+                alertPanel.innerHTML = '<div class="text-3xl mb-4">⚠️</div><h4 class="font-bold text-lg mb-2">ELEVATED RISK</h4><p class="text-sm text-yellow-200">Partial blockage detected. Monitor closely.</p>';
             } else {
-                labelEl.className = 'text-xs font-medium uppercase tracking-widest text-emerald-400'
-                labelEl.textContent = 'LOW RISK'
+                chartColor = '#00ff9f'; // Green
+                alertPanel.className = 'p-6 rounded-2xl bg-emerald-400/20 border border-emerald-400 text-white';
+                alertPanel.innerHTML = '<div class="text-3xl mb-4">✅</div><h4 class="font-bold text-lg mb-2">SYSTEM CLEAR</h4><p class="text-sm text-emerald-200">Water flowing normally. No blockages detected.</p>';
             }
+
+            floodGaugeChart.data.datasets[0].data = [blockage, safe];
+            floodGaugeChart.data.datasets[0].backgroundColor = [chartColor, '#112233'];
+            floodGaugeChart.update('none');
+
+            // Update Labels
+            const labelEl = document.getElementById('flood-risk-label');
+            labelEl.textContent = statusText;
+            labelEl.style.color = chartColor;
+
+            const badgeEl = document.getElementById('drain-status-badge');
+            badgeEl.className = `${badgeClass} text-xs font-bold px-5 h-7 rounded-3xl flex items-center`;
+            badgeEl.textContent = statusText;
+
+            // Update Sync Time
+            document.getElementById('sync-time').textContent = new Date().toLocaleTimeString();
         }
-        
-        // Select drain in prediction panel
-        function selectDrainForPrediction(id) {
-            const drain = drainsData.find(d => d.id === id)
-            if (!drain) return
-            updateFloodGauge(drain.riskScore)
-            // Simulate chart update
-            if (predictionLineChart) {
-                predictionLineChart.data.datasets[0].data = predictionLineChart.data.datasets[0].data.map(() => drain.metrics.blockage + Math.random() * 12)
-                predictionLineChart.update()
-            }
-            simulateDataUpdate()
-        }
-        
-        // Dismiss alert
-        function dismissAlert(id) {
-            activeAlerts = activeAlerts.filter(a => a.id !== id)
-            renderAlerts()
-        }
-        
-        // Trigger a visual flashing alert banner
-        function triggerFlashAlert() {
-            const banner = document.createElement('div')
-            banner.className = 'fixed top-0 left-0 right-0 z-[99999] alert-flash h-14 flex items-center justify-center text-white text-sm font-bold shadow-2xl'
-            banner.innerHTML = `🚨 DANGER: Kurla Drain-3 BLOCKAGE AT 89% – EVACUATE LOW-LYING AREAS IMMEDIATELY`
-            document.body.append(banner)
+
+        // Bootstrap App
+        window.onload = () => {
+            initCharts();
             
-            setTimeout(() => {
-                banner.style.transitionDuration = '800ms'
-                banner.style.opacity = '0'
-                setTimeout(() => banner.remove(), 800)
-            }, 3200)
-        }
-        
-        // Firebase modal
-        function showFirebaseModal() {
-            document.getElementById('firebaseModal').classList.remove('hidden')
-            document.getElementById('firebaseModal').classList.add('flex')
-        }
-        
-        function hideFirebaseModal() {
-            const modal = document.getElementById('firebaseModal')
-            modal.classList.add('hidden')
-            modal.classList.remove('flex')
-        }
-        
-        // Mobile menu
-        function toggleMobileMenu() {
-            const menu = document.getElementById('mobileMenu')
-            menu.classList.toggle('hidden')
-        }
-        
-        // Smooth scroll helper
-        function smoothScrollTo(section) {
-            const el = document.getElementById(section)
-            if (el) {
-                el.scrollIntoView({ behavior: 'smooth' })
-            }
-        }
-        
-        // Main application bootstrap
-        function launchApp() {
-            console.log('%c🚀 SmartDrain Mumbai Dashboard initialized', 'background:#00f7ff;color:#020C1B;font-weight:bold;padding:1px 4px;border-radius:2px')
-            
-            // Tailwind
-            initializeTailwind()
-            
-            // Render initial UI
-            renderDrains()
-            renderGlobalMetrics()
-            renderAlerts()
-            initCharts()
-            
-            // Simulate live updates every 6 seconds
-            setInterval(() => {
-                simulateDataUpdate()
-                // Occasionally update flood gauge
-                if (Math.random() > 0.6) {
-                    const randomRisk = Math.floor(Math.random() * 40) + 35
-                    updateFloodGauge(randomRisk)
+            // Listen to the specific drain path
+            const drainRef = ref(db, 'drain1');
+            onValue(drainRef, (snapshot) => {
+                const data = snapshot.val();
+                if (data) {
+                    // Change top nav badge to connected
+                    const statusBadge = document.getElementById('connection-status');
+                    statusBadge.className = "flex items-center bg-[#0A2540] text-[#00f7ff] text-xs font-mono px-4 h-9 rounded-3xl border border-[#00f7ff]/30";
+                    statusBadge.innerHTML = '<div class="w-2 h-2 bg-[#00f7ff] rounded-full animate-pulse mr-2"></div>LIVE • ESP32 ONLINE';
+
+                    updateDashboard(data);
                 }
-            }, 6000)
-            
-            console.log('%c✅ All components loaded. Firebase placeholder code is ready for real IoT integration.', 'color:#00f7ff')
-            
-            // Console message for developers
-            console.log('%c🔥 Ready to deploy on GitHub Pages. Replace Firebase config with your own project credentials.', 'color:#ff3355;font-size:10px')
-        }
-        
-        // Start the application
-        window.onload = launchApp
+            }, (error) => {
+                console.error("Firebase Error: ", error);
+            });
+        };
     </script>
 </body>
 </html>
