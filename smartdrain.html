@@ -2,7 +2,7 @@
 <html lang="en">
 <head> 
     <meta charset="UTF-8">  
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">  
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"> 
     <title>Smart Drainage Monitoring System | Ministry of Housing and Urban Affairs</title>  
     
     <script src="https://cdn.tailwindcss.com"></script>
@@ -194,9 +194,10 @@
                     </div>
                     
                     <div class="space-y-3 text-[10px] font-bold text-slate-600">
-                        <div class="flex items-center gap-2"><span>Flow:</span><input type="range" id="dev-flow" min="0" max="100" step="1" value="0" class="flex-1" oninput="pushDevData()"><span id="dev-flow-v" class="w-4">0</span></div>
-                        <div class="flex items-center gap-2"><span>Depth:</span><input type="range" id="dev-depth" min="0" max="30" step="0.5" value="0" class="flex-1" oninput="pushDevData()"><span id="dev-depth-v" class="w-4">0</span></div>
-                        <div class="flex items-center gap-2"><span>State:</span><input type="range" id="dev-state" min="0" max="3" step="1" value="0" class="flex-1" oninput="pushDevData()"><span id="dev-state-v" class="w-4">0</span></div>
+                        <div class="flex items-center gap-2"><span>Flow:</span><input type="range" id="dev-flow" min="0" max="100" step="1" value="0" class="flex-1" oninput="pushDevData()"><span id="dev-flow-v" class="w-6">0</span></div>
+                        <div class="flex items-center gap-2"><span>Depth:</span><input type="range" id="dev-depth" min="0" max="30" step="0.5" value="0" class="flex-1" oninput="pushDevData()"><span id="dev-depth-v" class="w-6">0</span></div>
+                        <div class="flex items-center gap-2"><span>Tau (s):</span><input type="range" id="dev-tau" min="-1" max="120" step="1" value="-1" class="flex-1" oninput="pushDevData()"><span id="dev-tau-v" class="w-6">-1</span></div>
+                        <div class="flex items-center gap-2"><span>State:</span><input type="range" id="dev-state" min="0" max="3" step="1" value="0" class="flex-1" oninput="pushDevData()"><span id="dev-state-v" class="w-6">0</span></div>
                     </div>
 
                     <h4 class="text-[10px] font-bold text-slate-500 mt-4 mb-2 uppercase tracking-wide border-t pt-2">ESP32 LED Control (Simulated)</h4>
@@ -472,10 +473,12 @@
             
             const f = parseFloat(document.getElementById('dev-flow').value);
             const d = parseFloat(document.getElementById('dev-depth').value);
+            const t = parseFloat(document.getElementById('dev-tau').value);
             const s = parseInt(document.getElementById('dev-state').value);
             
             document.getElementById('dev-flow-v').innerText = f;
             document.getElementById('dev-depth-v').innerText = d;
+            document.getElementById('dev-tau-v').innerText = t;
             document.getElementById('dev-state-v').innerText = s;
 
             let c = "NORMAL";
@@ -486,7 +489,7 @@
             processData({
                 avg_Qin_lpm: f,
                 avg_water_level_cm: d,
-                tau_seconds: (s===2 ? 15.5 : -1),
+                tau_seconds: t,
                 state: s,
                 classification: c
             });
@@ -502,6 +505,7 @@
             if(manualOverride) {
                 document.getElementById('dev-flow').value = p.avg_Qin_lpm;
                 document.getElementById('dev-depth').value = p.avg_water_level_cm;
+                document.getElementById('dev-tau').value = p.tau_seconds;
                 document.getElementById('dev-state').value = p.state;
                 pushDevData();
                 logActivity(`DEV: Loaded Virtual Scenario: ${type.toUpperCase()}`);
@@ -632,18 +636,18 @@
                 desc.innerText = `All nodes operating smoothly. No immediate threat.`;
             }
 
-            // SMART AUTO-TRIGGER
-            if (blockStatus === "CRITICAL" && !hasSentCriticalAlert) {
+            // SMART AUTO-TRIGGER (Fires when Blockage >= 70%)
+            if (b >= 70 && !hasSentCriticalAlert) {
                 hasSentCriticalAlert = true;
-                logActivity("⚠️ SYSTEM BREACH: Initiating Communication Protocols...");
-                addNotification("Critical Emergency", `Blockage at ${b}%. ESP32 Flagged Emergency.`, "critical");
+                logActivity("⚠️ SYSTEM ALERT: Initiating Communication Protocols...");
+                addNotification("System Alert", `Blockage at ${b}%. Action/Monitoring Required.`, b >= 90 ? "critical" : "warning");
                 
                 // Fire API
-                const msg = `🚨 CRITICAL DRAIN ALERT\nLocation: FG-MUM-001\nBlockage: ${b}%\nAction Required.`;
+                const msg = `🚨 DRAIN ALERT\nLocation: FG-MUM-001\nBlockage: ${b}%\nAction Required.`;
                 window.sendWhatsAppAlert(msg);
                 window.sendEmailAlert(b, currentData.tau);
 
-            } else if (blockStatus === "NORMAL" && hasSentCriticalAlert) {
+            } else if (b < 70 && hasSentCriticalAlert) {
                 hasSentCriticalAlert = false;
                 logActivity("✅ THREAT CLEARED: Auto-Alert reset completed.");
                 addNotification("System Restored", "Parameters returned to normal safe levels.", "warning");
