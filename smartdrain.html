@@ -980,9 +980,50 @@
 
         let lastAlertState = null;
 
+        function getAlertDetails(state, classification) {
+            const s = Number(state);
+            const cls = String(classification || "").trim();
+
+            if (s === 2) {
+                return {
+                    type: "HYDRAULIC CHOKE / BLOCKAGE",
+                    subject: "CRITICAL ALERT",
+                    severity: "CRITICAL",
+                    advice: "Immediate field inspection is advised. Please inspect the affected drainage zone for a possible obstruction and follow city authority response procedures.",
+                    color: "red"
+                };
+            }
+            if (s === 3) {
+                return {
+                    type: "TIDAL BACKFLOW / TAILWATER",
+                    subject: "IMPORTANT HYDRAULIC ALERT",
+                    severity: "WARNING",
+                    advice: "Downstream or tidal backwater influence may be affecting drainage. Please monitor the affected low-lying zone and follow city authority advisories.",
+                    color: "yellow"
+                };
+            }
+            if (s === 1) {
+                return {
+                    type: "RAINFALL-CONSISTENT",
+                    subject: "RAINFALL CONDITION ALERT",
+                    severity: "ADVISORY",
+                    advice: "Drainage behaviour is consistent with rainfall loading. Continue monitoring local rainfall and avoid waterlogged areas during heavy rain.",
+                    color: "cyan"
+                };
+            }
+            return {
+                type: cls || "DRY / NORMAL",
+                subject: "SYSTEM STATUS UPDATE",
+                severity: "NORMAL",
+                advice: "No immediate action is required. The drainage system is currently operating within the observed normal condition. Continue routine monitoring and normal civic precautions.",
+                color: "green"
+            };
+        }
+
         function checkAlerts(b) {
             const s = Number(currentData.state);
             const classification = currentData.classification;
+            const details = getAlertDetails(s, classification);
 
             const banner = document.getElementById('system-alert');
             const icon = document.getElementById('alert-icon');
@@ -995,49 +1036,57 @@
                 title.className = "text-red-800 font-bold text-lg sm:text-xl uppercase";
                 title.innerText = "HYDRAULIC CHOKE / BLOCKAGE ALERT";
                 desc.className = "text-red-700 text-sm font-semibold mt-1";
-                desc.innerText = "ESP32 classified a suspected hydraulic obstruction. Field inspection required.";
+                desc.innerText = "Possible drainage obstruction detected by the ESP32 hydraulic decision system. Field inspection is advised.";
             } else if (s === 3) {
                 banner.className = "bg-yellow-50 border-l-4 border-yellow-500 p-4 rounded-r-md card-shadow mb-6 flex flex-col sm:flex-row gap-4 justify-between sm:items-center transition-colors";
                 icon.className = "fa-solid fa-water text-yellow-600 text-3xl mr-4";
                 title.className = "text-yellow-800 font-bold text-lg sm:text-xl uppercase";
-                title.innerText = "TAILWATER EFFECT ALERT";
                 desc.className = "text-yellow-700 text-sm font-medium mt-1";
-                desc.innerText = "Possible downstream/backwater influence detected. Do not treat this alone as confirmed blockage.";
+                desc.innerText = "Possible downstream or tidal backwater influence detected. This condition alone is not confirmation of blockage.";
             } else if (s === 1) {
                 banner.className = "bg-cyan-50 border-l-4 border-cyan-500 p-4 rounded-r-md card-shadow mb-6 flex flex-col sm:flex-row gap-4 justify-between sm:items-center transition-colors";
                 icon.className = "fa-solid fa-cloud-rain text-cyan-600 text-3xl mr-4";
                 title.className = "text-cyan-800 font-bold text-lg sm:text-xl uppercase";
-                title.innerText = "RAINFALL-CONSISTENT CONDITION";
                 desc.className = "text-cyan-700 text-sm font-medium mt-1";
-                desc.innerText = "Water behaviour is currently consistent with rainfall-driven loading.";
+                desc.innerText = "Drainage behaviour is currently consistent with rainfall-driven loading.";
             } else {
                 banner.className = "bg-emerald-50 border-l-4 border-emerald-500 p-4 rounded-r-md card-shadow mb-6 flex flex-col sm:flex-row gap-4 justify-between sm:items-center transition-colors";
                 icon.className = "fa-solid fa-circle-check text-emerald-500 text-3xl mr-4";
                 title.className = "text-emerald-800 font-bold text-lg sm:text-xl uppercase";
                 title.innerText = "SYSTEM NORMAL";
                 desc.className = "text-emerald-600 text-sm font-medium mt-1";
-                desc.innerText = "ESP32 reports normal drainage behaviour.";
+                desc.innerText = "ESP32 reports normal drainage behaviour. No immediate threat is indicated.";
             }
 
-            // One email per classification transition. The email contains the complete
-            // current realtime telemetry payload, not only the risk number.
+            // One email for each classification/state transition.
+            // The alert is intentionally concise and environment-organization style:
+            // location -> risk + classification -> current time -> important parameters -> advice.
             if (lastAlertState !== s) {
                 lastAlertState = s;
 
-                const alertType =
-                    s === 2 ? "HYDRAULIC CHOKE / SUSPECTED OBSTRUCTION" :
-                    s === 3 ? "SUSPECTED TAILWATER EFFECT" :
-                    s === 1 ? "RAINFALL-CONSISTENT" :
-                    "DRY / NORMAL";
+                const riskPercent = Number.isFinite(Number(currentData.blockage))
+                    ? Number(currentData.blockage).toFixed(0)
+                    : "N/A";
+
+                const r = currentData.realtime || {};
+                const timestamp = new Date().toLocaleString("en-IN", {
+                    day: "2-digit",
+                    month: "2-digit",
+                    year: "numeric",
+                    hour: "2-digit",
+                    minute: "2-digit",
+                    second: "2-digit",
+                    hour12: true
+                });
 
                 addNotification(
-                    `Classification: ${alertType}`,
-                    `Flow ${currentData.flow.toFixed(2)} L/min | Depth ${currentData.depth.toFixed(2)} cm | dH/dt ${currentData.realtime?.dhdt?.toFixed?.(4) ?? "N/A"} cm/s`,
+                    `${details.type} · Risk ${riskPercent}%`,
+                    `Qin ${currentData.flow.toFixed(2)} L/min | Depth ${currentData.depth.toFixed(2)} cm | dH/dt ${Number.isFinite(r.dhdt) ? r.dhdt.toFixed(4) : "N/A"} cm/s`,
                     s === 2 ? "critical" : s === 0 ? "info" : "warning"
                 );
 
-                logActivity(`CLASSIFICATION CHANGE: ${alertType}. Email alert dispatched with realtime telemetry.`);
-                window.sendEmailAlert(currentData, alertType);
+                logActivity(`CLASSIFICATION CHANGE: ${details.type}. Email alert dispatched with concise realtime parameters.`);
+                window.sendEmailAlert(currentData, details, riskPercent, timestamp);
             }
         }
 
@@ -1049,7 +1098,7 @@
             console.log("Sending to Broadcast List...\n" + message);
         };
 
-        window.sendEmailAlert = function(dataObj, alertType) {
+        window.sendEmailAlert = function(dataObj, alertDetails, riskPercent, timestamp) {
             if (!window.__emailjsReady || typeof emailjs === "undefined") {
                 logActivity(`EMAIL ERROR: EmailJS is not initialized. Check EmailJS public key/library.`);
                 return;
@@ -1058,66 +1107,118 @@
             const mailingList = "dubeyneha8928@gmail.com, mamtaguptaa2005@gmail.com, daganivenkatesh8@gmail.com, sjha68298@gmail.com";
             const r = dataObj.realtime || {};
 
-            const telemetryReport =
-`Classification: ${alertType}
-State: ${dataObj.state}
-Measured Inflow (Qin): ${Number(dataObj.flow || 0).toFixed(3)} L/min
-Water Depth: ${Number(dataObj.depth || 0).toFixed(3)} cm
-Rise Rate (dH/dt): ${Number.isFinite(r.dhdt) ? Number(r.dhdt).toFixed(5) : "N/A"} cm/s
-Recession Tau: ${dataObj.tau < 0 ? "N/A" : Number(dataObj.tau).toFixed(3) + " s"}
-Distance: ${Number.isFinite(r.distance) ? Number(r.distance).toFixed(3) : "N/A"} cm
-Raw Depth: ${Number.isFinite(r.rawDepth) ? Number(r.rawDepth).toFixed(3) : "N/A"} cm
-Flow Pulses: ${r.flowPulses ?? "N/A"}
-Pulse Delta: ${r.flowPulseDelta ?? "N/A"}
-Flow Imbalance: ${Number.isFinite(r.imbalance) && r.imbalance >= 0 ? Number(r.imbalance).toFixed(3) + "%" : "N/A"}
-Event Status: ${r.eventStatus || "N/A"}
-Event Duration: ${r.eventDuration ?? "N/A"} s
-Sensor Anomaly: ${r.sensorAnomaly || "N/A"}
-Hydraulic Balance: ${r.hydraulicBalance || "N/A"}
-System Health: ${dataObj.health}/100
-Timestamp: ${new Date().toLocaleString()}`;
+            const location = "FG-MUM-001 | Mumbai, Maharashtra";
+            const classification = alertDetails?.type || dataObj.classification || "DRY / NORMAL";
+            const state = String(dataObj.state ?? "N/A");
 
+            const flow = Number.isFinite(Number(dataObj.flow))
+                ? Number(dataObj.flow).toFixed(3) + " L/min" : "N/A";
+            const depth = Number.isFinite(Number(dataObj.depth))
+                ? Number(dataObj.depth).toFixed(3) + " cm" : "N/A";
+            const dhdt = Number.isFinite(Number(r.dhdt))
+                ? Number(r.dhdt).toFixed(5) + " cm/s" : "N/A";
+            const tau = Number.isFinite(Number(dataObj.tau)) && Number(dataObj.tau) >= 0
+                ? Number(dataObj.tau).toFixed(3) + " s" : "N/A";
+            const imbalance = Number.isFinite(Number(r.imbalance)) && Number(r.imbalance) >= 0
+                ? Number(r.imbalance).toFixed(3) + "%" : "N/A";
+            const eventStatus = r.eventStatus || "N/A";
+            const eventDuration = r.eventDuration !== undefined ? String(r.eventDuration) + " s" : "N/A";
+            const sensorAnomaly = r.sensorAnomaly || "N/A";
+            const hydraulicBalance = r.hydraulicBalance || "N/A";
+
+            // Environment-organization style alert body.
+            // Keep the most important information first.
+            const alertMessage =
+`FLOODGUARD-IoT · ${alertDetails?.severity || "STATUS UPDATE"}
+
+MONITORING LOCATION
+${location}
+
+RISK & CLASSIFICATION
+Risk: ${riskPercent}%
+Classification: ${classification}
+State: ${state}
+
+CURRENT TIMESTAMP
+${timestamp}
+
+IMPORTANT REALTIME PARAMETERS
+Measured Inflow (Qin): ${flow}
+Water Depth: ${depth}
+Water Rise Rate (dH/dt): ${dhdt}
+Recession Tau: ${tau}
+Flow Imbalance: ${imbalance}
+Event Status: ${eventStatus}
+Event Duration: ${eventDuration}
+Sensor Anomaly: ${sensorAnomaly}
+Hydraulic Balance: ${hydraulicBalance}
+
+PUBLIC / CITY AUTHORITY ADVICE
+${alertDetails?.advice || "Continue monitoring the drainage condition and follow local authority advisories."}
+
+This alert was generated from the live FloodGuard-IoT ESP32 telemetry and its current four-state hydraulic classification.`;
+
+            // The existing EmailJS template is preserved. These fields are provided
+            // so the existing template remains compatible while the message field
+            // carries the new concise, ordered alert.
             const payload = {
                 to_email: mailingList,
-                location: "FG-MUM-001",
-                // Existing template compatibility + full telemetry fallback.
-                blockage: telemetryReport,
-                classification: alertType,
-                state: String(dataObj.state),
-                flow: Number(dataObj.flow || 0).toFixed(3) + " L/min",
-                depth: Number(dataObj.depth || 0).toFixed(3) + " cm",
-                dhdt: Number.isFinite(r.dhdt) ? Number(r.dhdt).toFixed(5) + " cm/s" : "N/A",
-                tau: dataObj.tau < 0 ? "N/A" : Number(dataObj.tau).toFixed(3) + " s",
-                distance: Number.isFinite(r.distance) ? Number(r.distance).toFixed(3) + " cm" : "N/A",
-                raw_depth: Number.isFinite(r.rawDepth) ? Number(r.rawDepth).toFixed(3) + " cm" : "N/A",
+                location: location,
+                blockage: `<strong>${riskPercent}%</strong>`,
+                classification: classification,
+                state: state,
+                risk_percent: `<strong>${riskPercent}%</strong>`,
+                alert_type: alertDetails?.severity || "STATUS UPDATE",
+                flow: flow,
+                depth: depth,
+                dhdt: dhdt,
+                tau: tau,
+                distance: Number.isFinite(Number(r.distance)) ? Number(r.distance).toFixed(3) + " cm" : "N/A",
+                raw_depth: Number.isFinite(Number(r.rawDepth)) ? Number(r.rawDepth).toFixed(3) + " cm" : "N/A",
                 flow_pulses: String(r.flowPulses ?? "N/A"),
                 flow_pulse_delta: String(r.flowPulseDelta ?? "N/A"),
-                imbalance: Number.isFinite(r.imbalance) && r.imbalance >= 0 ? Number(r.imbalance).toFixed(3) + "%" : "N/A",
-                event_status: r.eventStatus || "N/A",
-                event_duration: String(r.eventDuration ?? "N/A") + " s",
-                sensor_anomaly: r.sensorAnomaly || "N/A",
-                hydraulic_balance: r.hydraulicBalance || "N/A",
-                health: String(dataObj.health) + "/100",
-                gas: telemetryReport,
-                timestamp: new Date().toLocaleString(),
-                message: telemetryReport
+                imbalance: imbalance,
+                event_status: eventStatus,
+                event_duration: eventDuration,
+                sensor_anomaly: sensorAnomaly,
+                hydraulic_balance: hydraulicBalance,
+                health: String(dataObj.health ?? "N/A") + "/100",
+                gas: classification,
+                timestamp: timestamp,
+                advice: alertDetails?.advice || "",
+                message: alertMessage
             };
 
             emailjs.send('service_q7nfhac', 'template_eiy1jha', payload)
                 .then(() => {
-                    logActivity(`EMAIL SUCCESS: ${alertType} alert sent with realtime telemetry.`);
+                    logActivity(`EMAIL SUCCESS: ${classification} | Risk ${riskPercent}% | ${location}`);
                 })
                 .catch(err => {
                     console.error("Email Error:", err);
-                    logActivity(`EMAIL ERROR: ${alertType} could not be sent. ${err?.text || err?.message || ""}`);
+                    logActivity(`EMAIL ERROR: ${classification} could not be sent. ${err?.text || err?.message || ""}`);
                 });
         };
 
         window.simulateTestAlert = function() {
-            window.sendWhatsAppAlert("TEST ALERT FROM ADMIN DASHBOARD");
-            window.sendEmailAlert(currentData, currentData.classification);
-            addNotification("Manual Override API", "Test APIs dispatched by Admin.", "warning");
-            alert("Test alert sent to EmailJS. Check the System Audit Logs for the delivery result.");
+            const details = getAlertDetails(currentData.state, currentData.classification);
+            const riskPercent = Number.isFinite(Number(currentData.blockage))
+                ? Number(currentData.blockage).toFixed(0) : "N/A";
+            const timestamp = new Date().toLocaleString("en-IN", {
+                day: "2-digit",
+                month: "2-digit",
+                year: "numeric",
+                hour: "2-digit",
+                minute: "2-digit",
+                second: "2-digit",
+                hour12: true
+            });
+
+            window.sendWhatsAppAlert(
+                `FloodGuard-IoT TEST | FG-MUM-001 | Risk ${riskPercent}% | ${details.type}`
+            );
+            window.sendEmailAlert(currentData, details, riskPercent, timestamp);
+            addNotification("Manual Alert Test", `${details.type} | Risk ${riskPercent}%`, "warning");
+            alert("Test alert sent to EmailJS. Check Gmail and the System Audit Logs for the delivery result.");
         };
 
         function logActivity(msg) {
