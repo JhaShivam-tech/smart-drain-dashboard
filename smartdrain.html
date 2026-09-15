@@ -148,75 +148,157 @@
                         <div class="flex items-center gap-2"><span>State:</span><input type="range" id="dev-state" min="0" max="3" value="0" class="flex-1 accent-purple-600" disabled oninput="pushDevData()"><span id="dev-state-val" class="w-6 text-right">0</span></div>
                     </div>
                     
-                    <h4 class="text-[10px] font-bold text-slate-500 mt-4 mb-2 uppercase tracking-wide border-t pt-2">ESP32 LED Control (Simulated)</h4>
-                    <div class="flex gap-2 text-[10px]">
-                        <button class="flex-1 py-1 rounded border border-red-200 text-red-600 font-bold hover:bg-red-50" onclick="logActivity('DEV: Toggled RED Indicator LED')">RED</button>
-                        <button class="flex-1 py-1 rounded border border-slate-300 text-slate-600 font-bold hover:bg-slate-50" onclick="logActivity('DEV: Toggled WHITE Indicator LED')">WHT</button>
-                        <button class="flex-1 py-1 rounded border border-green-200 text-green-600 font-bold hover:bg-green-50" onclick="logActivity('DEV: Toggled GREEN Indicator LED')">GRN</button>
+                    <h4 class="text-[10px] font-bold text-slate-500 mt-4 mb-2 uppercase tracking-wide border-t pt-2">ESP32 LED Control</h4>
+                    <div class="grid grid-cols-3 gap-2 text-[10px]">
+                        <button id="led-red-btn" class="py-2 rounded border border-red-200 text-red-600 font-bold hover:bg-red-50" onclick="setLedControl('red')"><i class="fa-solid fa-lightbulb mr-1"></i> RED <span id="led-red-state">OFF</span></button>
+                        <button id="led-white-btn" class="py-2 rounded border border-slate-300 text-slate-600 font-bold hover:bg-slate-50" onclick="setLedControl('white')"><i class="fa-solid fa-lightbulb mr-1"></i> WHITE <span id="led-white-state">OFF</span></button>
+                        <button id="led-green-btn" class="py-2 rounded border border-green-200 text-green-600 font-bold hover:bg-green-50" onclick="setLedControl('green')"><i class="fa-solid fa-lightbulb mr-1"></i> GREEN <span id="led-green-state">OFF</span></button>
                     </div>
+                    <p class="text-[9px] text-slate-400 mt-2">Three ESP32 LED controls. Green is also used by automatic normal-state logic.</p>
+                </div>
+            </div>
+
+            <!-- Citizen-only realtime insight cards -->
+            <div class="lg:col-span-4 grid grid-cols-1 sm:grid-cols-3 gap-3 mt-1">
+                <div class="citizen-only bg-white p-4 rounded-xl border border-slate-200 card-shadow">
+                    <p class="text-[9px] font-bold text-slate-400 uppercase">What is happening?</p>
+                    <p id="citizen-status-detail" class="text-sm font-bold text-slate-800 mt-2">Waiting for live data...</p>
+                </div>
+                <div class="citizen-only bg-white p-4 rounded-xl border border-slate-200 card-shadow">
+                    <p class="text-[9px] font-bold text-slate-400 uppercase">Water Level Change</p>
+                    <p id="citizen-rise-detail" class="text-sm font-bold text-slate-800 mt-2">Waiting for live data...</p>
+                </div>
+                <div class="citizen-only bg-white p-4 rounded-xl border border-slate-200 card-shadow">
+                    <p class="text-[9px] font-bold text-slate-400 uppercase">Citizen Action</p>
+                    <p id="citizen-action-detail" class="text-sm font-bold text-slate-800 mt-2">Waiting for live data...</p>
                 </div>
             </div>
 
             <!-- RIGHT 3 COLUMNS: Main Cards -->
             <div class="lg:col-span-3 grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                 
-                <!-- CARD 1: Flow Rate -->
+                <!-- CARD 1: Measured Inflow -->
                 <div class="bg-white p-4 sm:p-5 rounded-xl border border-slate-200 card-shadow flex flex-col justify-between">
                     <div class="flex justify-between items-start">
                         <div class="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600"><i class="fa-solid fa-water"></i></div>
-                        <span class="text-[9px] sm:text-[10px] font-bold px-2 py-1 bg-slate-100 text-slate-500 rounded uppercase tracking-wide">Liters/Min</span>
+                        <span class="text-[9px] sm:text-[10px] font-bold px-2 py-1 bg-slate-100 text-slate-500 rounded uppercase tracking-wide">L/min</span>
                     </div>
                     <div>
-                        <p class="text-xs font-bold text-slate-400 uppercase tracking-wide mt-4">Water Flow Rate</p>
+                        <p class="text-xs font-bold text-slate-400 uppercase tracking-wide mt-4">Measured Inflow</p>
                         <p class="text-4xl sm:text-5xl font-black text-slate-800 mt-1" id="val-flow">0.0</p>
+                        <p class="text-[10px] text-slate-400 mt-1">Flow sensor / Qin</p>
                     </div>
                 </div>
 
-                <!-- CARD 2: Depth -->
+                <!-- CARD 2: Water Depth -->
                 <div class="bg-white p-4 sm:p-5 rounded-xl border border-slate-200 card-shadow flex flex-col justify-between">
                     <div class="flex justify-between items-start">
                         <div class="w-10 h-10 rounded-full bg-cyan-100 flex items-center justify-center text-cyan-600"><i class="fa-solid fa-ruler-vertical"></i></div>
-                        <span class="text-[9px] sm:text-[10px] font-bold px-2 py-1 bg-slate-100 text-slate-500 rounded uppercase tracking-wide">Centimeters</span>
+                        <span class="text-[9px] sm:text-[10px] font-bold px-2 py-1 bg-slate-100 text-slate-500 rounded uppercase tracking-wide">cm</span>
                     </div>
                     <div>
                         <p class="text-xs font-bold text-slate-400 uppercase tracking-wide mt-4">Water Depth</p>
                         <p class="text-4xl sm:text-5xl font-black text-slate-800 mt-1" id="val-depth">0.0</p>
+                        <p class="text-[10px] text-slate-400 mt-1">Filtered ultrasonic level</p>
                     </div>
                 </div>
 
-                <!-- CARD 3: Tau -->
+                <!-- CARD 3: Rise Rate / Recession -->
                 <div class="bg-white p-4 sm:p-5 rounded-xl border border-slate-200 card-shadow flex flex-col justify-between">
                     <div class="flex justify-between items-start">
-                        <div class="w-10 h-10 rounded-full bg-orange-100 flex items-center justify-center text-orange-600"><i class="fa-solid fa-clock"></i></div>
-                        <span class="text-[9px] sm:text-[10px] font-bold px-2 py-1 bg-slate-100 text-slate-500 rounded uppercase tracking-wide">Seconds</span>
+                        <div class="w-10 h-10 rounded-full bg-orange-100 flex items-center justify-center text-orange-600"><i class="fa-solid fa-arrow-trend-up"></i></div>
+                        <span class="text-[9px] sm:text-[10px] font-bold px-2 py-1 bg-slate-100 text-slate-500 rounded uppercase tracking-wide">cm/s</span>
                     </div>
                     <div>
-                        <p class="text-xs font-bold text-slate-400 uppercase tracking-wide mt-4">Overflow Prediction</p>
-                        <p class="text-3xl sm:text-4xl font-black text-slate-800 mt-1" id="val-tau">N/A</p>
+                        <p class="text-xs font-bold text-slate-400 uppercase tracking-wide mt-4">Water Rise Rate (dH/dt)</p>
+                        <p class="text-3xl sm:text-4xl font-black text-slate-800 mt-1" id="val-dhdt">0.000</p>
+                        <p class="text-[10px] text-slate-400 mt-1" id="dhdt-desc">Rate of water-level change</p>
                     </div>
                 </div>
 
-                <!-- CARD 4: AI State -->
+                <!-- CARD 4: Tau / Recession -->
                 <div class="bg-white p-4 sm:p-5 rounded-xl border border-slate-200 card-shadow flex flex-col justify-between">
                     <div class="flex justify-between items-start">
+                        <div class="w-10 h-10 rounded-full bg-violet-100 flex items-center justify-center text-violet-600"><i class="fa-solid fa-clock-rotate-left"></i></div>
+                        <span class="text-[9px] sm:text-[10px] font-bold px-2 py-1 bg-slate-100 text-slate-500 rounded uppercase tracking-wide">seconds</span>
+                    </div>
+                    <div>
+                        <p class="text-xs font-bold text-slate-400 uppercase tracking-wide mt-4">Recession Tau</p>
+                        <p class="text-3xl sm:text-4xl font-black text-slate-800 mt-1" id="val-tau">N/A</p>
+                        <p class="text-[10px] text-slate-400 mt-1">Hydraulic recession time constant</p>
+                    </div>
+                </div>
+
+                <!-- Classification card -->
+                <div class="bg-white p-4 sm:p-5 rounded-xl border border-slate-200 card-shadow flex flex-col justify-between sm:col-span-2">
+                    <div class="flex justify-between items-start">
                         <div class="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center text-purple-600"><i class="fa-solid fa-network-wired"></i></div>
-                        <span class="text-[9px] sm:text-[10px] font-bold px-2 py-1 bg-slate-100 text-slate-500 rounded uppercase tracking-wide">AI State</span>
+                        <span class="text-[9px] sm:text-[10px] font-bold px-2 py-1 bg-slate-100 text-slate-500 rounded uppercase tracking-wide">ESP32 Output</span>
                     </div>
                     <div>
                         <p class="text-xs font-bold text-slate-400 uppercase tracking-wide mt-4">System Classification</p>
-                        <p class="text-xl sm:text-2xl font-black text-slate-800 mt-1"><span id="val-class">NORMAL</span></p>
+                        <p class="text-xl sm:text-2xl font-black text-slate-800 mt-1"><span id="val-class">DRY / NORMAL</span></p>
+                        <p class="text-[10px] text-slate-400 mt-1">State <span id="val-state">0</span> • Direct Firebase realtime value</p>
                     </div>
                 </div>
             </div>
 
-            <!-- DEV MODE ADVANCED CARDS -->
+            <!-- DEV MODE ADVANCED TELEMETRY -->
             <div class="lg:col-span-4 dev-only mt-2">
-                <h3 class="text-xs font-bold text-purple-600 uppercase tracking-widest mb-3 border-b border-slate-200 pb-2"><i class="fa-solid fa-microchip mr-1"></i> Advanced Telemetry Diagnostics (Dev Only)</h3>
-                <div id="dev-advanced-cards" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4">
-                    <div class="text-xs text-slate-400 italic col-span-full">Waiting for advanced data stream...</div>
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-200 pb-3 mb-3">
+                    <div>
+                        <h3 class="text-xs font-black text-purple-700 uppercase tracking-widest"><i class="fa-solid fa-microchip mr-1"></i> Developer Telemetry Console</h3>
+                        <p class="text-[10px] text-slate-400 mt-1">Complete scalar payload from <span class="font-bold">/FloodGuard/realtime/FG-MUM-001</span>. No Firebase realtime field is intentionally hidden.</p>
+                    </div>
+                    <span id="dev-payload-count" class="text-[9px] font-black px-2.5 py-1 rounded-full bg-purple-50 text-purple-700 border border-purple-100">0 FIELDS</span>
                 </div>
+                <div class="grid grid-cols-1 xl:grid-cols-2 gap-3">
+                    <div class="rounded-xl border border-slate-200 bg-slate-50/70 p-3">
+                        <div class="flex items-center justify-between mb-2"><h4 class="text-[10px] font-black text-slate-600 uppercase tracking-wider"><i class="fa-solid fa-gauge-high mr-1"></i> Live Hydraulic Output</h4><span class="text-[8px] font-bold text-emerald-600">REALTIME</span></div>
+                        <div id="dev-hydraulic-cards" class="grid grid-cols-2 gap-2"></div>
+                    </div>
+                    <div class="rounded-xl border border-slate-200 bg-slate-50/70 p-3">
+                        <div class="flex items-center justify-between mb-2"><h4 class="text-[10px] font-black text-slate-600 uppercase tracking-wider"><i class="fa-solid fa-wave-square mr-1"></i> Flow & Volume</h4><span class="text-[8px] font-bold text-blue-600">SENSOR</span></div>
+                        <div id="dev-flow-cards" class="grid grid-cols-2 gap-2"></div>
+                    </div>
+                    <div class="rounded-xl border border-slate-200 bg-slate-50/70 p-3">
+                        <div class="flex items-center justify-between mb-2"><h4 class="text-[10px] font-black text-slate-600 uppercase tracking-wider"><i class="fa-solid fa-triangle-exclamation mr-1"></i> Event & Decision</h4><span class="text-[8px] font-bold text-orange-600">CLASSIFIER</span></div>
+                        <div id="dev-event-cards" class="grid grid-cols-2 gap-2"></div>
+                    </div>
+                    <div class="rounded-xl border border-slate-200 bg-slate-50/70 p-3">
+                        <div class="flex items-center justify-between mb-2"><h4 class="text-[10px] font-black text-slate-600 uppercase tracking-wider"><i class="fa-solid fa-screwdriver-wrench mr-1"></i> Diagnostics & System</h4><span class="text-[8px] font-bold text-slate-500">DEVICE</span></div>
+                        <div id="dev-diagnostic-cards" class="grid grid-cols-2 gap-2"></div>
+                    </div>
+                </div>
+                <details class="mt-3 rounded-xl border border-slate-200 bg-slate-950 text-slate-100 overflow-hidden">
+                    <summary class="cursor-pointer px-3 py-2 text-[10px] font-black uppercase tracking-wider">Raw Firebase Realtime Payload</summary>
+                    <pre id="dev-raw-json" class="p-3 text-[9px] leading-4 overflow-auto max-h-80">Waiting for realtime data...</pre>
+                </details>
             </div>
             
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 admin-only mt-6">
+            <div class="bg-white p-4 rounded-xl border border-slate-200 card-shadow">
+                <p class="text-[9px] font-bold text-slate-400 uppercase">Measured Inflow</p>
+                <p class="text-2xl font-black text-slate-800 mt-1"><span id="admin-flow">0.0</span> <span class="text-xs font-bold text-slate-400">L/min</span></p>
+            </div>
+            <div class="bg-white p-4 rounded-xl border border-slate-200 card-shadow">
+                <p class="text-[9px] font-bold text-slate-400 uppercase">Water Depth</p>
+                <p class="text-2xl font-black text-slate-800 mt-1"><span id="admin-depth">0.0</span> <span class="text-xs font-bold text-slate-400">cm</span></p>
+            </div>
+            <div class="bg-white p-4 rounded-xl border border-slate-200 card-shadow">
+                <p class="text-[9px] font-bold text-slate-400 uppercase">Rise Rate dH/dt</p>
+                <p class="text-2xl font-black text-slate-800 mt-1"><span id="admin-dhdt">0.000</span> <span class="text-xs font-bold text-slate-400">cm/s</span></p>
+            </div>
+            <div class="bg-white p-4 rounded-xl border border-slate-200 card-shadow">
+                <p class="text-[9px] font-bold text-slate-400 uppercase">Recession Tau</p>
+                <p class="text-2xl font-black text-slate-800 mt-1"><span id="admin-tau">N/A</span> <span class="text-xs font-bold text-slate-400">s</span></p>
+            </div>
+            <div class="bg-white p-4 rounded-xl border border-slate-200 card-shadow">
+                <p class="text-[9px] font-bold text-slate-400 uppercase">ESP32 Classification</p>
+                <p class="text-sm font-black text-slate-800 mt-2 leading-tight" id="admin-class">DRY / NORMAL</p>
+            </div>
         </div>
 
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 admin-only">
@@ -324,6 +406,7 @@
         window.onload = () => {
             initChart();
             setupFirebaseListener();
+        loadLedControlState();
             switchMode();
         };
 
@@ -436,48 +519,177 @@
             document.getElementById('connection-status').innerHTML = `<i class="fa-solid fa-wifi"></i> Online`;
             document.getElementById('connection-status').className = "text-xs font-bold px-3 py-1.5 rounded-full bg-emerald-50 text-emerald-600 border border-emerald-200 hidden sm:block";
 
-            // Map Backend Logic
-            currentData.flow = data.avg_Qin_lpm || data.Measured_Qin || 0;
-            currentData.depth = data.avg_water_level_cm || data.Filtered_depth || 0;
-            currentData.tau = data.tau_seconds !== undefined ? data.tau_seconds : (data.Event_Tau || -1);
-            currentData.state = data.state !== undefined ? data.state : (data.STATE || 0);
+            // Map Firebase realtime data directly.
+            // Existing website behavior is preserved; values now prefer the
+            // exact fields written by the FloodGuard ESP32 firmware.
+            currentData.flow = data.avg_Qin_lpm !== undefined ? Number(data.avg_Qin_lpm) :
+                               (data.Measured_Qin !== undefined ? Number(data.Measured_Qin) : 0);
 
-            if (currentData.state === 2) { currentData.blockage = 95; currentData.classification = "CHOKE DETECTED"; currentData.health = 20; }
-            else if (currentData.state === 3) { currentData.blockage = 80; currentData.classification = "TAILWATER EFFECT"; currentData.health = 50; }
-            else if (currentData.state === 1) { currentData.blockage = 40; currentData.classification = "RAINFALL-CONSISTENT"; currentData.health = 85; }
-            else { currentData.blockage = 0; currentData.classification = "DRY / NORMAL"; currentData.health = 100; }
+            currentData.depth = data.avg_water_level_cm !== undefined ? Number(data.avg_water_level_cm) :
+                                (data.Filtered_depth !== undefined ? Number(data.Filtered_depth) : 0);
+
+            currentData.tau = data.tau_seconds !== undefined ? Number(data.tau_seconds) :
+                              (data.Event_Tau !== undefined ? Number(data.Event_Tau) : -1);
+
+            currentData.state = data.state !== undefined ? Number(data.state) :
+                                (data.STATE !== undefined ? Number(data.STATE) : 0);
+
+            // Exact realtime hydraulic/diagnostic values from the ESP32 payload.
+            const realtime = {
+                distance: data.Distance !== undefined ? Number(data.Distance) : NaN,
+                rawDepth: data.Raw_depth !== undefined ? Number(data.Raw_depth) : NaN,
+                filteredDepth: data.Filtered_depth !== undefined ? Number(data.Filtered_depth) : currentData.depth,
+                dhdt: data.dh_dt !== undefined ? Number(data.dh_dt) : 0,
+                tauRatio: data.Tau_ratio !== undefined ? Number(data.Tau_ratio) : -1,
+                flowPulses: data.Flow_pulses !== undefined ? Number(data.Flow_pulses) : 0,
+                flowPulseDelta: data.Flow_pulse_delta !== undefined ? Number(data.Flow_pulse_delta) : 0,
+                imbalance: data.Flow_imbalance !== undefined ? Number(data.Flow_imbalance) : -1,
+                eventStatus: data.Event_status !== undefined ? String(data.Event_status) : "INACTIVE",
+                eventDuration: data.Event_duration !== undefined ? Number(data.Event_duration) : 0,
+                sensorAnomaly: data.SENSOR_ANOMALY !== undefined ? String(data.SENSOR_ANOMALY) : "NO",
+                hydraulicBalance: data.Hydraulic_balance !== undefined ? String(data.Hydraulic_balance) : "OK",
+                sampleCount: data.sample_count !== undefined ? Number(data.sample_count) : undefined
+            };
+
+            currentData.realtime = realtime;
+
+            // Use the exact Firebase classification when available.
+            currentData.classification =
+                data.classification !== undefined ? String(data.classification) :
+                (data.CLASSIFICATION !== undefined ? String(data.CLASSIFICATION) :
+                (currentData.state === 2 ? "CHOKE DETECTED" :
+                 currentData.state === 3 ? "TAILWATER EFFECT" :
+                 currentData.state === 1 ? "RAINFALL-CONSISTENT" :
+                 "DRY / NORMAL"));
+
+            // Preserve the existing website's risk/health behavior.
+            if (currentData.state === 2) { currentData.blockage = 95; currentData.health = 20; }
+            else if (currentData.state === 3) { currentData.blockage = 80; currentData.health = 50; }
+            else if (currentData.state === 1) { currentData.blockage = 40; currentData.health = 85; }
+            else { currentData.blockage = 0; currentData.health = 100; }
 
             const nowStr = new Date().toLocaleTimeString();
             document.getElementById('last-update').innerText = nowStr;
 
             // Update DOM UI
-            document.getElementById('val-flow').innerText = currentData.flow.toFixed(1);
-            document.getElementById('val-depth').innerText = currentData.depth.toFixed(1);
-            document.getElementById('val-tau').innerText = currentData.tau < 0 ? "N/A" : currentData.tau.toFixed(1);
+            document.getElementById('val-flow').innerText = Number.isFinite(currentData.flow) ? currentData.flow.toFixed(1) : "0.0";
+            document.getElementById('val-depth').innerText = Number.isFinite(currentData.depth) ? currentData.depth.toFixed(1) : "0.0";
+            document.getElementById('val-tau').innerText =
+                !Number.isFinite(currentData.tau) || currentData.tau < 0 ? "N/A" : currentData.tau.toFixed(1);
             document.getElementById('val-class').innerText = currentData.classification;
             document.getElementById('main-blockage').innerText = currentData.blockage;
-            
-            // Advanced Dev Cards Render
-            const devCards = document.getElementById('dev-advanced-cards');
-            if(devCards) {
-                let html = '';
-                const hiddenKeys = ['timestamp', 'avg_Qin_lpm', 'avg_water_level_cm', 'tau_seconds', 'state', 'classification'];
-                for(let key in data) {
-                    if(hiddenKeys.includes(key) || typeof data[key] === 'object') continue;
-                    let val = typeof data[key] === 'number' ? (Number.isInteger(data[key]) ? data[key] : data[key].toFixed(3)) : data[key];
-                    html += `
-                    <div class="bg-white p-3 sm:p-4 rounded-xl border border-purple-100 shadow-sm flex flex-col justify-between">
-                        <div class="flex justify-between items-start mb-2">
-                            <div class="w-6 h-6 rounded-full bg-slate-50 flex items-center justify-center text-slate-400 text-[10px]"><i class="fa-solid fa-satellite-dish"></i></div>
-                        </div>
-                        <div>
-                            <p class="text-[9px] font-bold text-slate-500 uppercase tracking-widest truncate" title="${key}">${key.replace(/_/g, ' ')}</p>
-                            <p class="text-sm sm:text-lg font-black text-slate-800 mt-1 truncate" title="${val}">${val}</p>
-                        </div>
-                    </div>`;
-                }
-                devCards.innerHTML = html;
+
+            // Real hydraulic values on the main flash cards.
+            document.getElementById('val-dhdt').innerText =
+                Number.isFinite(realtime.dhdt) ? realtime.dhdt.toFixed(3) : "N/A";
+            document.getElementById('val-state').innerText = currentData.state;
+
+            const dhDesc = document.getElementById('dhdt-desc');
+            if (dhDesc) {
+                if (realtime.dhdt > 0) dhDesc.innerText = "Water level is rising";
+                else if (realtime.dhdt < 0) dhDesc.innerText = "Water level is falling";
+                else dhDesc.innerText = "Water level is stable";
             }
+
+            // Authority realtime cards.
+            const setText = (id, value) => {
+                const el = document.getElementById(id);
+                if (el) el.innerText = value;
+            };
+            setText('admin-flow', Number.isFinite(currentData.flow) ? currentData.flow.toFixed(2) : "N/A");
+            setText('admin-depth', Number.isFinite(currentData.depth) ? currentData.depth.toFixed(2) : "N/A");
+            setText('admin-dhdt', Number.isFinite(realtime.dhdt) ? realtime.dhdt.toFixed(4) : "N/A");
+            setText('admin-tau', currentData.tau < 0 ? "N/A" : currentData.tau.toFixed(2));
+            setText('admin-class', currentData.classification);
+
+            // Citizen explanation cards.
+            const citizenStatus = document.getElementById('citizen-status-detail');
+            const citizenRise = document.getElementById('citizen-rise-detail');
+            const citizenAction = document.getElementById('citizen-action-detail');
+
+            if (citizenStatus && citizenRise && citizenAction) {
+                const c = currentData.classification.toUpperCase();
+
+                if (currentData.state === 2) {
+                    citizenStatus.innerText = "Possible drainage blockage detected.";
+                    citizenRise.innerText = realtime.dhdt > 0 ? "Water level is rising." : "Hydraulic restriction is being observed.";
+                    citizenAction.innerText = "Avoid entering the affected drainage area and follow local authority instructions.";
+                } else if (currentData.state === 3) {
+                    citizenStatus.innerText = "Possible downstream / tailwater influence.";
+                    citizenRise.innerText = realtime.dhdt > 0 ? "Water level is rising." : "Downstream conditions may be affecting drainage.";
+                    citizenAction.innerText = "Stay alert near low-lying areas and follow local advisories.";
+                } else if (currentData.state === 1) {
+                    citizenStatus.innerText = "Drainage behaviour is consistent with rainfall.";
+                    citizenRise.innerText = realtime.dhdt > 0 ? "Water level is rising with inflow." : "Water level is changing gradually.";
+                    citizenAction.innerText = "Stay aware of local rainfall and avoid waterlogged areas.";
+                } else {
+                    citizenStatus.innerText = "Drainage system is currently normal.";
+                    citizenRise.innerText = realtime.dhdt > 0 ? "Water level is rising slowly." : "Water level is stable.";
+                    citizenAction.innerText = "No immediate action indicated. Continue normal caution.";
+                }
+            }
+
+            // Read actual ESP32 LED states from Firebase control path when present.
+            updateLedStateUI(data);
+
+            // Developer mode: render EVERY Firebase realtime scalar field in organized groups.
+            const devHydraulic = document.getElementById('dev-hydraulic-cards');
+            const devFlow = document.getElementById('dev-flow-cards');
+            const devEvent = document.getElementById('dev-event-cards');
+            const devDiag = document.getElementById('dev-diagnostic-cards');
+            const devRaw = document.getElementById('dev-raw-json');
+            const devCount = document.getElementById('dev-payload-count');
+
+            const escapeHtml = (value) => String(value)
+                .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;').replace(/'/g, '&#039;');
+
+            const formatValue = (value) => {
+                if (typeof value === 'number') {
+                    if (Number.isNaN(value)) return "NaN";
+                    return Number.isInteger(value) ? String(value) : value.toFixed(4);
+                }
+                if (value === null) return "null";
+                if (typeof value === 'object') return JSON.stringify(value);
+                return String(value);
+            };
+
+            const makeTelemetryCard = (key, value) => {
+                const safeKey = escapeHtml(key);
+                const safeValue = escapeHtml(formatValue(value));
+                return `<div class="bg-white rounded-lg border border-slate-200 p-2.5 min-w-0">
+                    <p class="text-[8px] font-black text-slate-400 uppercase tracking-wider truncate" title="${safeKey}">${escapeHtml(key.replace(/_/g, ' '))}</p>
+                    <p class="text-xs sm:text-sm font-black text-slate-800 mt-1 break-words" title="${safeValue}">${safeValue}</p>
+                    <p class="text-[7px] text-slate-400 mt-1 font-mono truncate">${safeKey}</p>
+                </div>`;
+            };
+
+            const hydraulicKeys = ["Distance","Raw_depth","Filtered_depth","dh_dt","Cross_section_A","Pipe_diameter","Pipe_radius","Pipe_length","Water_volume","Previous_volume","dVdt_Finite","dVdt_Geometric"];
+            const flowKeys = ["Flow_pulses","Flow_pulse_delta","Measured_Qin","dVdt_eq_flow","dVdt_Geom_flow","Raw_Qout","Estimated_Qout","Flow_imbalance"];
+            const eventKeys = ["STATE","state","CLASSIFICATION","classification","Event_status","Event_duration","Peak_depth","Recession","Event_Tau","tau_seconds","Tau_ratio","Baseline_Tau_thr","Persistence_R","Persistence_S","Persistence_F"];
+            const diagnosticKeys = ["SENSOR_ANOMALY","Hydraulic_balance","timestamp","sample_count","is_emergency_bypass","sensor_anomaly"];
+
+            const renderGroup = (container, keys) => {
+                if (!container) return;
+                const cards = keys.filter(key => Object.prototype.hasOwnProperty.call(data, key))
+                    .map(key => makeTelemetryCard(key, data[key]));
+                container.innerHTML = cards.length ? cards.join('') : '<p class="text-[9px] text-slate-400 italic col-span-full">No matching fields in current realtime payload.</p>';
+            };
+
+            renderGroup(devHydraulic, hydraulicKeys);
+            renderGroup(devFlow, flowKeys);
+            renderGroup(devEvent, eventKeys);
+            renderGroup(devDiag, diagnosticKeys);
+
+            // Safety net: every scalar field not already categorized is still displayed.
+            const groupedKeys = new Set([...hydraulicKeys, ...flowKeys, ...eventKeys, ...diagnosticKeys]);
+            const remaining = Object.keys(data).filter(key =>
+                !groupedKeys.has(key) && (typeof data[key] !== 'object' || data[key] === null)
+            );
+            if (devDiag && remaining.length) devDiag.insertAdjacentHTML('beforeend', remaining.map(key => makeTelemetryCard(key, data[key])).join(''));
+
+            if (devCount) devCount.innerText = `${Object.keys(data).length} FIELDS`;
+            if (devRaw) devRaw.textContent = JSON.stringify(data, null, 2);
 
             document.getElementById('health-score').innerText = `${currentData.health}/100`;
             const hb = document.getElementById('health-bar');
@@ -500,6 +712,57 @@
             chartData.push(blockage);
             if(chartLabels.length > maxChartPoints) { chartLabels.shift(); chartData.shift(); }
             chartInstance.update();
+        }
+
+        // ==========================
+        // 5B. ESP32 LED CONTROL
+        // ==========================
+        async function setLedControl(which) {
+            if (currentMode !== "dev" && currentMode !== "admin") {
+                logActivity("LED control denied: Citizen mode.");
+                return;
+            }
+            const id = which === "red" ? "led-red-state" :
+                       which === "white" ? "led-white-state" : "led-green-state";
+            const current = document.getElementById(id)?.innerText === "ON";
+            const path = `/FloodGuard/control/FG-MUM-001/led_${which}`;
+            try {
+                await window.dbSet(window.dbRef(window.db, path), !current);
+                logActivity(`ESP32 LED: ${which.toUpperCase()} set to ${!current ? "ON" : "OFF"}.`);
+                updateLedButton(which, !current);
+            } catch (err) {
+                console.error("LED control error:", err);
+                logActivity(`LED control failed: ${which.toUpperCase()}.`);
+            }
+        }
+
+        function updateLedButton(which, on) {
+            const stateId = which === "red" ? "led-red-state" :
+                            which === "white" ? "led-white-state" : "led-green-state";
+            const btnId = which === "red" ? "led-red-btn" :
+                          which === "white" ? "led-white-btn" : "led-green-btn";
+            const state = document.getElementById(stateId);
+            const btn = document.getElementById(btnId);
+            if (state) state.innerText = on ? "ON" : "OFF";
+            if (btn) btn.classList.toggle("ring-2", on);
+        }
+
+        async function loadLedControlState() {
+            if (!window.dbGet) return;
+            for (const which of ["red", "white", "green"]) {
+                try {
+                    const snap = await window.dbGet(window.dbRef(window.db, `/FloodGuard/control/FG-MUM-001/led_${which}`));
+                    if (snap && snap.exists()) updateLedButton(which, Boolean(snap.val()));
+                } catch (err) {
+                    console.warn(`Could not read ${which} LED state`, err);
+                }
+            }
+        }
+
+        function updateLedStateUI(data) {
+            if (data.led_red !== undefined) updateLedButton("red", Boolean(data.led_red));
+            if (data.led_white !== undefined) updateLedButton("white", Boolean(data.led_white));
+            if (data.led_green !== undefined) updateLedButton("green", Boolean(data.led_green));
         }
 
         // ==========================
@@ -566,53 +829,66 @@
             badge.classList.remove('hidden');
         }
 
+        let lastAlertState = null;
+
         function checkAlerts(b) {
-            const blockStatus = b >= 90 ? "CRITICAL" : b >= 50 ? "WARNING" : "NORMAL";
-            
-            // Handle UI Banner Updates
+            const s = Number(currentData.state);
+            const classification = currentData.classification;
+
             const banner = document.getElementById('system-alert');
             const icon = document.getElementById('alert-icon');
             const title = document.getElementById('alert-title');
             const desc = document.getElementById('alert-desc');
 
-            if (blockStatus === "CRITICAL") {
+            if (s === 2) {
                 banner.className = "bg-red-50 border-l-4 border-red-600 p-4 rounded-r-md card-shadow mb-6 flex flex-col sm:flex-row gap-4 justify-between sm:items-center transition-colors";
                 icon.className = "fa-solid fa-triangle-exclamation text-red-600 text-3xl mr-4 blinking-red";
                 title.className = "text-red-800 font-bold text-lg sm:text-xl uppercase";
-                title.innerText = "CRITICAL EMERGENCY ALERT";
+                title.innerText = "HYDRAULIC CHOKE / BLOCKAGE ALERT";
                 desc.className = "text-red-700 text-sm font-semibold mt-1";
-                desc.innerText = `Blockage: ${b}%. Physical intervention required.`;
-            } else if (blockStatus === "WARNING") {
+                desc.innerText = "ESP32 classified a suspected hydraulic obstruction. Field inspection required.";
+            } else if (s === 3) {
                 banner.className = "bg-yellow-50 border-l-4 border-yellow-500 p-4 rounded-r-md card-shadow mb-6 flex flex-col sm:flex-row gap-4 justify-between sm:items-center transition-colors";
-                icon.className = "fa-solid fa-bell text-yellow-600 text-3xl mr-4";
+                icon.className = "fa-solid fa-water text-yellow-600 text-3xl mr-4";
                 title.className = "text-yellow-800 font-bold text-lg sm:text-xl uppercase";
-                title.innerText = "ELEVATED RISK WARNING";
+                title.innerText = "TAILWATER EFFECT ALERT";
                 desc.className = "text-yellow-700 text-sm font-medium mt-1";
-                desc.innerText = `Blockage: ${b}%. Monitor closely.`;
+                desc.innerText = "Possible downstream/backwater influence detected. Do not treat this alone as confirmed blockage.";
+            } else if (s === 1) {
+                banner.className = "bg-cyan-50 border-l-4 border-cyan-500 p-4 rounded-r-md card-shadow mb-6 flex flex-col sm:flex-row gap-4 justify-between sm:items-center transition-colors";
+                icon.className = "fa-solid fa-cloud-rain text-cyan-600 text-3xl mr-4";
+                title.className = "text-cyan-800 font-bold text-lg sm:text-xl uppercase";
+                title.innerText = "RAINFALL-CONSISTENT CONDITION";
+                desc.className = "text-cyan-700 text-sm font-medium mt-1";
+                desc.innerText = "Water behaviour is currently consistent with rainfall-driven loading.";
             } else {
                 banner.className = "bg-emerald-50 border-l-4 border-emerald-500 p-4 rounded-r-md card-shadow mb-6 flex flex-col sm:flex-row gap-4 justify-between sm:items-center transition-colors";
                 icon.className = "fa-solid fa-circle-check text-emerald-500 text-3xl mr-4";
                 title.className = "text-emerald-800 font-bold text-lg sm:text-xl uppercase";
-                title.innerText = "System Normal";
+                title.innerText = "SYSTEM NORMAL";
                 desc.className = "text-emerald-600 text-sm font-medium mt-1";
-                desc.innerText = `All nodes operating smoothly. No immediate threat.`;
+                desc.innerText = "ESP32 reports normal drainage behaviour.";
             }
 
-            // SMART AUTO-TRIGGER (Fires when Blockage >= 70%)
-            if (b >= 70 && !hasSentCriticalAlert) {
-                hasSentCriticalAlert = true;
-                logActivity("🚨 SYSTEM ALERT: Initiating Communication Protocols...");
-                addNotification("System Alert", `Blockage at ${b}%. Action/Monitoring Required.`, b >= 90 ? "critical" : "warning");
-                
-                // Fire API
-                const msg = `🚨 DRAIN ALERT\nLocation: FG-MUM-001\nBlockage: ${b}%\nAction Required.`;
-                window.sendWhatsAppAlert(msg);
-                window.sendEmailAlert(b, currentData.tau);
+            // One email per classification transition. The email contains the complete
+            // current realtime telemetry payload, not only the risk number.
+            if (lastAlertState !== s) {
+                lastAlertState = s;
 
-            } else if (b < 70 && hasSentCriticalAlert) {
-                hasSentCriticalAlert = false;
-                logActivity("✅ THREAT CLEARED: Auto-Alert reset completed.");
-                addNotification("System Restored", "Parameters returned to normal safe levels.", "warning");
+                const alertType =
+                    s === 2 ? "HYDRAULIC CHOKE / SUSPECTED OBSTRUCTION" :
+                    s === 3 ? "SUSPECTED TAILWATER EFFECT" :
+                    s === 1 ? "RAINFALL-CONSISTENT" :
+                    "DRY / NORMAL";
+
+                addNotification(
+                    `Classification: ${alertType}`,
+                    `Flow ${currentData.flow.toFixed(2)} L/min | Depth ${currentData.depth.toFixed(2)} cm | dH/dt ${currentData.realtime?.dhdt?.toFixed?.(4) ?? "N/A"} cm/s`,
+                    s === 2 ? "critical" : s === 0 ? "info" : "warning"
+                );
+
+                logActivity(`CLASSIFICATION CHANGE: ${alertType}. Email alert dispatched with realtime telemetry.`);
+                window.sendEmailAlert(currentData, alertType);
             }
         }
 
@@ -624,18 +900,45 @@
             console.log("Sending to Broadcast List...\n" + message);
         };
 
-        window.sendEmailAlert = function(blockage, tau) {
-            const mailingList = "dubeyneha8928@gmail.com, mamtaguptaa2005@gmail.com, daganivenkatesh8@gmail.com, sjha68298@gmail.com" ;
-            const templateParams = { to_email: mailingList, location: "FG-MUM-001", blockage: blockage + "%", gas: (tau < 0 ? "N/A" : tau + "s"), timestamp: new Date().toLocaleString() };
-            
-            emailjs.send('service_q7nfhac', 'template_eiy1jha', templateParams)
-              .then(() => logActivity("📧 SUCCESS: Emergency Emails sent to Admin List."))
-              .catch(err => console.error("Email Error:", err));
+        window.sendEmailAlert = function(dataObj, alertType) {
+            const mailingList = "dubeyneha8928@gmail.com, mamtaguptaa2005@gmail.com, daganivenkatesh8@gmail.com, sjha68298@gmail.com";
+
+            const r = dataObj.realtime || {};
+            const payload = {
+                to_email: mailingList,
+                location: "FG-MUM-001",
+                blockage: String(dataObj.blockage) + "%",
+                classification: alertType,
+                state: String(dataObj.state),
+                flow: Number(dataObj.flow || 0).toFixed(3) + " L/min",
+                depth: Number(dataObj.depth || 0).toFixed(3) + " cm",
+                dhdt: Number.isFinite(r.dhdt) ? Number(r.dhdt).toFixed(5) + " cm/s" : "N/A",
+                tau: dataObj.tau < 0 ? "N/A" : Number(dataObj.tau).toFixed(3) + " s",
+                distance: Number.isFinite(r.distance) ? Number(r.distance).toFixed(3) + " cm" : "N/A",
+                raw_depth: Number.isFinite(r.rawDepth) ? Number(r.rawDepth).toFixed(3) + " cm" : "N/A",
+                flow_pulses: String(r.flowPulses ?? "N/A"),
+                flow_pulse_delta: String(r.flowPulseDelta ?? "N/A"),
+                imbalance: Number.isFinite(r.imbalance) && r.imbalance >= 0 ? Number(r.imbalance).toFixed(3) + "%" : "N/A",
+                event_status: r.eventStatus || "N/A",
+                event_duration: String(r.eventDuration ?? "N/A") + " s",
+                sensor_anomaly: r.sensorAnomaly || "N/A",
+                hydraulic_balance: r.hydraulicBalance || "N/A",
+                health: String(dataObj.health) + "/100",
+                timestamp: new Date().toLocaleString(),
+                message: `FloodGuard FG-MUM-001 | ${alertType} | State ${dataObj.state} | Flow ${Number(dataObj.flow || 0).toFixed(3)} L/min | Depth ${Number(dataObj.depth || 0).toFixed(3)} cm | dH/dt ${Number.isFinite(r.dhdt) ? Number(r.dhdt).toFixed(5) : "N/A"} cm/s | Tau ${dataObj.tau < 0 ? "N/A" : Number(dataObj.tau).toFixed(3) + " s"} | Sensor anomaly ${r.sensorAnomaly || "N/A"}`
+            };
+
+            emailjs.send('service_q7nfhac', 'template_eiy1jha', payload)
+              .then(() => logActivity(`EMAIL SUCCESS: ${alertType} sent with realtime telemetry.`))
+              .catch(err => {
+                  console.error("Email Error:", err);
+                  logActivity(`EMAIL ERROR: ${alertType} could not be sent.`);
+              });
         };
 
         window.simulateTestAlert = function() {
             window.sendWhatsAppAlert("TEST ALERT FROM ADMIN DASHBOARD");
-            window.sendEmailAlert(currentData.blockage, currentData.tau);
+            window.sendEmailAlert(currentData, currentData.classification);
             addNotification("Manual Override API", "Test APIs dispatched by Admin.", "warning");
             alert("Test Alerts fired to WhatsApp logic and EmailJS.");
         };
@@ -666,7 +969,7 @@
                 let lw = msg.toLowerCase();
 
                 if(lw.includes('status') || lw.includes('risk')) {
-                    response = `Currently, the blockage risk is ${currentData.blockage}%. System health is ${currentData.health}%. <br><b>AI Insight:</b> ${document.getElementById('ai-insight').innerText}`;
+                    response = `Current classification is <b>${currentData.classification}</b> (State ${currentData.state}). Flow is ${currentData.flow.toFixed(2)} L/min, depth is ${currentData.depth.toFixed(2)} cm, and system health is ${currentData.health}%. <br><b>Insight:</b> ${document.getElementById('ai-insight').innerText}`;
                 } else if(lw.includes('export') || lw.includes('data')) {
                     response = "You can export the current system report by clicking the 'Export Report' button at the top right of the dashboard. It supports CSV and PDF.";
                 } else if(lw.includes('admin') || lw.includes('command')) {
