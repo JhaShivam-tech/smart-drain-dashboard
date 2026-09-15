@@ -3,7 +3,7 @@
 <head> 
     <meta charset="UTF-8">   
     <meta name="viewport" content="width=device-width, initial-scale=1.0"> 
-    <title>FloodGuard-IoT | Smart Drainage Analytics</title>   
+    <title>FloodGuard-IoT | Smart Drainage Analytics</title>  
      
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -980,50 +980,64 @@
 
         let lastAlertState = null;
 
-        function getAlertDetails(state, classification) {
+        // ==========================
+        // 7. CLASSIFICATION & ALERTS
+        // ==========================
+        function getAlertProfile(state, rawClassification) {
             const s = Number(state);
-            const cls = String(classification || "").trim();
+            const raw = String(rawClassification || "").trim();
 
+            // Four-state FloodGuard output. State remains the primary decision output
+            // from the ESP32/Firebase payload. The raw Firebase classification is also
+            // retained separately so the alert never invents a condition.
             if (s === 2) {
                 return {
-                    type: "HYDRAULIC CHOKE / BLOCKAGE",
-                    subject: "CRITICAL ALERT",
-                    severity: "CRITICAL",
-                    advice: "Immediate field inspection is advised. Please inspect the affected drainage zone for a possible obstruction and follow city authority response procedures.",
-                    color: "red"
+                    risk: 95,
+                    classification: "BLOCKAGE",
+                    displayClassification: raw || "HYDRAULIC CHOKE / SUSPECTED OBSTRUCTION",
+                    title: "CRITICAL DRAINAGE BLOCKAGE ALERT",
+                    subject: "🚨 CRITICAL ALERT: Drainage Blockage at FG-MUM-001",
+                    severity: "critical",
+                    advice: "Immediate field inspection is advised. Please inspect the affected drainage zone for a possible obstruction and initiate the appropriate municipal drainage response."
                 };
             }
             if (s === 3) {
                 return {
-                    type: "TIDAL BACKFLOW / TAILWATER",
-                    subject: "IMPORTANT HYDRAULIC ALERT",
-                    severity: "WARNING",
-                    advice: "Downstream or tidal backwater influence may be affecting drainage. Please monitor the affected low-lying zone and follow city authority advisories.",
-                    color: "yellow"
+                    risk: 80,
+                    classification: "TIDAL BACKFLOW",
+                    displayClassification: raw || "SUSPECTED TAILWATER EFFECT",
+                    title: "TIDAL BACKFLOW / TAILWATER ALERT",
+                    subject: "⚠️ ALERT: Tidal Backflow Condition at FG-MUM-001",
+                    severity: "warning",
+                    advice: "Downstream or tidal backflow influence is indicated. Please monitor the affected drainage zone and assess downstream water levels and pumping/discharge conditions. This condition should not be treated as confirmed blockage by itself."
                 };
             }
             if (s === 1) {
                 return {
-                    type: "RAINFALL-CONSISTENT",
-                    subject: "RAINFALL CONDITION ALERT",
-                    severity: "ADVISORY",
-                    advice: "Drainage behaviour is consistent with rainfall loading. Continue monitoring local rainfall and avoid waterlogged areas during heavy rain.",
-                    color: "cyan"
+                    risk: 40,
+                    classification: "RAINFALL",
+                    displayClassification: raw || "RAINFALL-CONSISTENT",
+                    title: "RAINFALL-CONSISTENT CONDITION",
+                    subject: "🌧️ FLOODGUARD ALERT: Rainfall-Consistent Drainage Condition at FG-MUM-001",
+                    severity: "warning",
+                    advice: "The observed drainage behaviour is consistent with rainfall-driven loading. Continue monitoring rainfall and drainage conditions, with particular attention to low-lying and waterlogging-prone areas."
                 };
             }
             return {
-                type: cls || "DRY / NORMAL",
-                subject: "SYSTEM STATUS UPDATE",
-                severity: "NORMAL",
-                advice: "No immediate action is required. The drainage system is currently operating within the observed normal condition. Continue routine monitoring and normal civic precautions.",
-                color: "green"
+                risk: 0,
+                classification: "DRY / NORMAL",
+                displayClassification: raw || "DRY / NORMAL",
+                title: "DRAINAGE SYSTEM NORMAL",
+                subject: "✅ FLOODGUARD STATUS: Drainage System Normal at FG-MUM-001",
+                severity: "info",
+                advice: "No immediate intervention is indicated. The monitored drainage node is currently reporting normal conditions. Continue routine monitoring and standard municipal preparedness."
             };
         }
 
         function checkAlerts(b) {
             const s = Number(currentData.state);
             const classification = currentData.classification;
-            const details = getAlertDetails(s, classification);
+            const profile = getAlertProfile(s, classification);
 
             const banner = document.getElementById('system-alert');
             const icon = document.getElementById('alert-icon');
@@ -1034,59 +1048,45 @@
                 banner.className = "bg-red-50 border-l-4 border-red-600 p-4 rounded-r-md card-shadow mb-6 flex flex-col sm:flex-row gap-4 justify-between sm:items-center transition-colors";
                 icon.className = "fa-solid fa-triangle-exclamation text-red-600 text-3xl mr-4 blinking-red";
                 title.className = "text-red-800 font-bold text-lg sm:text-xl uppercase";
-                title.innerText = "HYDRAULIC CHOKE / BLOCKAGE ALERT";
+                title.innerText = profile.title;
                 desc.className = "text-red-700 text-sm font-semibold mt-1";
-                desc.innerText = "Possible drainage obstruction detected by the ESP32 hydraulic decision system. Field inspection is advised.";
+                desc.innerText = "ESP32 reports a suspected drainage obstruction. Municipal field assessment is advised.";
             } else if (s === 3) {
                 banner.className = "bg-yellow-50 border-l-4 border-yellow-500 p-4 rounded-r-md card-shadow mb-6 flex flex-col sm:flex-row gap-4 justify-between sm:items-center transition-colors";
                 icon.className = "fa-solid fa-water text-yellow-600 text-3xl mr-4";
                 title.className = "text-yellow-800 font-bold text-lg sm:text-xl uppercase";
+                title.innerText = profile.title;
                 desc.className = "text-yellow-700 text-sm font-medium mt-1";
-                desc.innerText = "Possible downstream or tidal backwater influence detected. This condition alone is not confirmation of blockage.";
+                desc.innerText = "Possible downstream/tidal backflow influence detected. This is not, by itself, confirmed blockage.";
             } else if (s === 1) {
                 banner.className = "bg-cyan-50 border-l-4 border-cyan-500 p-4 rounded-r-md card-shadow mb-6 flex flex-col sm:flex-row gap-4 justify-between sm:items-center transition-colors";
                 icon.className = "fa-solid fa-cloud-rain text-cyan-600 text-3xl mr-4";
                 title.className = "text-cyan-800 font-bold text-lg sm:text-xl uppercase";
+                title.innerText = profile.title;
                 desc.className = "text-cyan-700 text-sm font-medium mt-1";
-                desc.innerText = "Drainage behaviour is currently consistent with rainfall-driven loading.";
+                desc.innerText = "Water behaviour is currently consistent with rainfall-driven loading.";
             } else {
                 banner.className = "bg-emerald-50 border-l-4 border-emerald-500 p-4 rounded-r-md card-shadow mb-6 flex flex-col sm:flex-row gap-4 justify-between sm:items-center transition-colors";
                 icon.className = "fa-solid fa-circle-check text-emerald-500 text-3xl mr-4";
                 title.className = "text-emerald-800 font-bold text-lg sm:text-xl uppercase";
-                title.innerText = "SYSTEM NORMAL";
+                title.innerText = profile.title;
                 desc.className = "text-emerald-600 text-sm font-medium mt-1";
-                desc.innerText = "ESP32 reports normal drainage behaviour. No immediate threat is indicated.";
+                desc.innerText = "ESP32 reports normal drainage behaviour. No immediate intervention is indicated.";
             }
 
-            // One email for each classification/state transition.
-            // The alert is intentionally concise and environment-organization style:
-            // location -> risk + classification -> current time -> important parameters -> advice.
+            // One email per classification/state transition, using only the live
+            // Firebase/ESP32 values already present in currentData.
             if (lastAlertState !== s) {
                 lastAlertState = s;
 
-                const riskPercent = Number.isFinite(Number(currentData.blockage))
-                    ? Number(currentData.blockage).toFixed(0)
-                    : "N/A";
-
-                const r = currentData.realtime || {};
-                const timestamp = new Date().toLocaleString("en-IN", {
-                    day: "2-digit",
-                    month: "2-digit",
-                    year: "numeric",
-                    hour: "2-digit",
-                    minute: "2-digit",
-                    second: "2-digit",
-                    hour12: true
-                });
-
                 addNotification(
-                    `${details.type} · Risk ${riskPercent}%`,
-                    `Qin ${currentData.flow.toFixed(2)} L/min | Depth ${currentData.depth.toFixed(2)} cm | dH/dt ${Number.isFinite(r.dhdt) ? r.dhdt.toFixed(4) : "N/A"} cm/s`,
-                    s === 2 ? "critical" : s === 0 ? "info" : "warning"
+                    `Classification: ${profile.classification}`,
+                    `Risk ${profile.risk}% | Flow ${currentData.flow.toFixed(2)} L/min | Depth ${currentData.depth.toFixed(2)} cm | dH/dt ${currentData.realtime?.dhdt?.toFixed?.(4) ?? "N/A"} cm/s`,
+                    profile.severity
                 );
 
-                logActivity(`CLASSIFICATION CHANGE: ${details.type}. Email alert dispatched with concise realtime parameters.`);
-                window.sendEmailAlert(currentData, details, riskPercent, timestamp);
+                logActivity(`CLASSIFICATION CHANGE: ${profile.classification}. Email alert dispatched with live telemetry.`);
+                window.sendEmailAlert(currentData, profile);
             }
         }
 
@@ -1098,127 +1098,118 @@
             console.log("Sending to Broadcast List...\n" + message);
         };
 
-        window.sendEmailAlert = function(dataObj, alertDetails, riskPercent, timestamp) {
+        window.sendEmailAlert = function(dataObj, profileOrType) {
             if (!window.__emailjsReady || typeof emailjs === "undefined") {
                 logActivity(`EMAIL ERROR: EmailJS is not initialized. Check EmailJS public key/library.`);
                 return;
             }
 
+            const profile = typeof profileOrType === "object"
+                ? profileOrType
+                : getAlertProfile(dataObj.state, profileOrType);
+
             const mailingList = "dubeyneha8928@gmail.com, mamtaguptaa2005@gmail.com, daganivenkatesh8@gmail.com, sjha68298@gmail.com";
             const r = dataObj.realtime || {};
+            const timestamp = new Date().toLocaleString("en-IN", { dateStyle: "short", timeStyle: "medium" });
 
-            const location = "FG-MUM-001 | Mumbai, Maharashtra";
-            const classification = alertDetails?.type || dataObj.classification || "DRY / NORMAL";
-            const state = String(dataObj.state ?? "N/A");
+            const valueOrNA = (value, digits = 3, suffix = "") => {
+                const n = Number(value);
+                return Number.isFinite(n) ? n.toFixed(digits) + suffix : "N/A";
+            };
 
-            const flow = Number.isFinite(Number(dataObj.flow))
-                ? Number(dataObj.flow).toFixed(3) + " L/min" : "N/A";
-            const depth = Number.isFinite(Number(dataObj.depth))
-                ? Number(dataObj.depth).toFixed(3) + " cm" : "N/A";
-            const dhdt = Number.isFinite(Number(r.dhdt))
-                ? Number(r.dhdt).toFixed(5) + " cm/s" : "N/A";
-            const tau = Number.isFinite(Number(dataObj.tau)) && Number(dataObj.tau) >= 0
-                ? Number(dataObj.tau).toFixed(3) + " s" : "N/A";
-            const imbalance = Number.isFinite(Number(r.imbalance)) && Number(r.imbalance) >= 0
-                ? Number(r.imbalance).toFixed(3) + "%" : "N/A";
-            const eventStatus = r.eventStatus || "N/A";
-            const eventDuration = r.eventDuration !== undefined ? String(r.eventDuration) + " s" : "N/A";
-            const sensorAnomaly = r.sensorAnomaly || "N/A";
-            const hydraulicBalance = r.hydraulicBalance || "N/A";
-
-            // Environment-organization style alert body.
-            // Keep the most important information first.
-            const alertMessage =
-`FLOODGUARD-IoT · ${alertDetails?.severity || "STATUS UPDATE"}
+            // IMPORTANT: this is plain text. Do not put <strong> tags inside the
+            // payload. Bold formatting belongs in the EmailJS template itself.
+            const telemetryReport =
+`FLOODGUARD-IoT · ${profile.title}
 
 MONITORING LOCATION
-${location}
+FG-MUM-001 | Mumbai, Maharashtra
 
 RISK & CLASSIFICATION
-Risk: ${riskPercent}%
-Classification: ${classification}
-State: ${state}
+Risk Index: ${profile.risk}%
+Classification: ${profile.classification}
+ESP32/Firebase Classification: ${profile.displayClassification}
+State: ${dataObj.state}
 
 CURRENT TIMESTAMP
 ${timestamp}
 
 IMPORTANT REALTIME PARAMETERS
-Measured Inflow (Qin): ${flow}
-Water Depth: ${depth}
-Water Rise Rate (dH/dt): ${dhdt}
-Recession Tau: ${tau}
-Flow Imbalance: ${imbalance}
-Event Status: ${eventStatus}
-Event Duration: ${eventDuration}
-Sensor Anomaly: ${sensorAnomaly}
-Hydraulic Balance: ${hydraulicBalance}
+Measured Inflow (Qin): ${valueOrNA(dataObj.flow, 3, " L/min")}
+Water Depth: ${valueOrNA(dataObj.depth, 3, " cm")}
+Water Rise Rate (dH/dt): ${valueOrNA(r.dhdt, 5, " cm/s")}
+Recession Tau: ${Number(dataObj.tau) >= 0 ? valueOrNA(dataObj.tau, 3, " s") : "N/A"}
+Flow Imbalance: ${Number.isFinite(Number(r.imbalance)) && Number(r.imbalance) >= 0 ? valueOrNA(r.imbalance, 3, "%") : "N/A"}
+Event Status: ${r.eventStatus || "N/A"}
+Event Duration: ${r.eventDuration !== undefined ? String(r.eventDuration) + " s" : "N/A"}
+Sensor Anomaly: ${r.sensorAnomaly || "N/A"}
+Hydraulic Balance: ${r.hydraulicBalance || "N/A"}
+System Health: ${dataObj.health}/100
+Distance: ${valueOrNA(r.distance, 3, " cm")}
+Raw Depth: ${valueOrNA(r.rawDepth, 3, " cm")}
+Flow Pulses: ${r.flowPulses ?? "N/A"}
+Flow Pulse Delta: ${r.flowPulseDelta ?? "N/A"}
 
-PUBLIC / CITY AUTHORITY ADVICE
-${alertDetails?.advice || "Continue monitoring the drainage condition and follow local authority advisories."}
+CITY AUTHORITY ADVICE
+${profile.advice}`;
 
-This alert was generated from the live FloodGuard-IoT ESP32 telemetry and its current four-state hydraulic classification.`;
-
-            // The existing EmailJS template is preserved. These fields are provided
-            // so the existing template remains compatible while the message field
-            // carries the new concise, ordered alert.
             const payload = {
                 to_email: mailingList,
-                location: location,
-                blockage: `<strong>${riskPercent}%</strong>`,
-                classification: classification,
-                state: state,
-                risk_percent: `<strong>${riskPercent}%</strong>`,
-                alert_type: alertDetails?.severity || "STATUS UPDATE",
-                flow: flow,
-                depth: depth,
-                dhdt: dhdt,
-                tau: tau,
-                distance: Number.isFinite(Number(r.distance)) ? Number(r.distance).toFixed(3) + " cm" : "N/A",
-                raw_depth: Number.isFinite(Number(r.rawDepth)) ? Number(r.rawDepth).toFixed(3) + " cm" : "N/A",
+                location: "FG-MUM-001 | Mumbai, Maharashtra",
+
+                // Existing EmailJS template compatibility.
+                // 'blockage' is now ONLY the numeric risk value, never HTML.
+                blockage: `${profile.risk}%`,
+                risk: `${profile.risk}%`,
+                risk_percent: String(profile.risk),
+                classification: profile.classification,
+                canonical_classification: profile.classification,
+                raw_classification: profile.displayClassification,
+                state: String(dataObj.state),
+                alert_title: profile.title,
+                subject: profile.subject,
+
+                flow: valueOrNA(dataObj.flow, 3, " L/min"),
+                depth: valueOrNA(dataObj.depth, 3, " cm"),
+                dhdt: valueOrNA(r.dhdt, 5, " cm/s"),
+                tau: Number(dataObj.tau) >= 0 ? valueOrNA(dataObj.tau, 3, " s") : "N/A",
+                distance: valueOrNA(r.distance, 3, " cm"),
+                raw_depth: valueOrNA(r.rawDepth, 3, " cm"),
                 flow_pulses: String(r.flowPulses ?? "N/A"),
                 flow_pulse_delta: String(r.flowPulseDelta ?? "N/A"),
-                imbalance: imbalance,
-                event_status: eventStatus,
-                event_duration: eventDuration,
-                sensor_anomaly: sensorAnomaly,
-                hydraulic_balance: hydraulicBalance,
-                health: String(dataObj.health ?? "N/A") + "/100",
-                gas: classification,
+                imbalance: Number.isFinite(Number(r.imbalance)) && Number(r.imbalance) >= 0 ? valueOrNA(r.imbalance, 3, "%") : "N/A",
+                event_status: r.eventStatus || "N/A",
+                event_duration: r.eventDuration !== undefined ? String(r.eventDuration) + " s" : "N/A",
+                sensor_anomaly: r.sensorAnomaly || "N/A",
+                hydraulic_balance: r.hydraulicBalance || "N/A",
+                health: String(dataObj.health) + "/100",
+
+                // No methane-gas value is invented. The current FloodGuard payload
+                // does not contain a methane measurement.
+                gas: "N/A - methane measurement is not part of the current telemetry",
+
                 timestamp: timestamp,
-                advice: alertDetails?.advice || "",
-                message: alertMessage
+                advice: profile.advice,
+                message: telemetryReport,
+                telemetry: telemetryReport
             };
 
             emailjs.send('service_q7nfhac', 'template_eiy1jha', payload)
                 .then(() => {
-                    logActivity(`EMAIL SUCCESS: ${classification} | Risk ${riskPercent}% | ${location}`);
+                    logActivity(`EMAIL SUCCESS: ${profile.classification} | Risk ${profile.risk}% | live telemetry sent.`);
                 })
                 .catch(err => {
                     console.error("Email Error:", err);
-                    logActivity(`EMAIL ERROR: ${classification} could not be sent. ${err?.text || err?.message || ""}`);
+                    logActivity(`EMAIL ERROR: ${profile.classification} could not be sent. ${err?.text || err?.message || ""}`);
                 });
         };
 
         window.simulateTestAlert = function() {
-            const details = getAlertDetails(currentData.state, currentData.classification);
-            const riskPercent = Number.isFinite(Number(currentData.blockage))
-                ? Number(currentData.blockage).toFixed(0) : "N/A";
-            const timestamp = new Date().toLocaleString("en-IN", {
-                day: "2-digit",
-                month: "2-digit",
-                year: "numeric",
-                hour: "2-digit",
-                minute: "2-digit",
-                second: "2-digit",
-                hour12: true
-            });
-
-            window.sendWhatsAppAlert(
-                `FloodGuard-IoT TEST | FG-MUM-001 | Risk ${riskPercent}% | ${details.type}`
-            );
-            window.sendEmailAlert(currentData, details, riskPercent, timestamp);
-            addNotification("Manual Alert Test", `${details.type} | Risk ${riskPercent}%`, "warning");
-            alert("Test alert sent to EmailJS. Check Gmail and the System Audit Logs for the delivery result.");
+            window.sendWhatsAppAlert("TEST ALERT FROM ADMIN DASHBOARD");
+            const profile = getAlertProfile(currentData.state, currentData.classification);
+            window.sendEmailAlert(currentData, profile);
+            addNotification("Manual Override API", `Test ${profile.classification} email dispatched.`, "warning");
+            alert("Test alert sent to EmailJS. Check the System Audit Logs for the delivery result.");
         };
 
         function logActivity(msg) {
